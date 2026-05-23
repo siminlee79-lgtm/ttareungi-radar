@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192" role="img" aria-label="따릉이 레이더 아이콘">
+  <rect width="192" height="192" rx="32" fill="#0b6b57"/>
+  <circle cx="96" cy="96" r="58" fill="#d8f0e7"/>
+  <path d="M56 112h80" stroke="#0b6b57" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="68" cy="118" r="20" fill="none" stroke="#14201d" stroke-width="10"/>
+  <circle cx="124" cy="118" r="20" fill="none" stroke="#14201d" stroke-width="10"/>
+  <path d="M78 118l16-34 16 34M94 84h28" fill="none" stroke="#14201d" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M96 38v20M96 134v20M38 96h20M134 96h20" stroke="#ffffff" stroke-width="8" stroke-linecap="round"/>
+</svg>

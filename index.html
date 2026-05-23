@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b6b57" />
+    <title>따릉이 레이더</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Seoul Bike Radar</p>
+          <h1>따릉이 레이더</h1>
+        </div>
+        <button class="icon-button" id="refreshButton" aria-label="새로고침" title="새로고침">
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M19.2 11.8a7.2 7.2 0 1 1-2.05-5.05" stroke-width="1.7" />
+            <path d="M19.2 4.9v4.8h-4.8" stroke-width="1.7" />
+          </svg>
+        </button>
+      </header>
+
+      <section class="time-strip" aria-label="현재 날짜와 시간">
+        <div>
+          <span>현재 기준</span>
+          <strong id="currentDateTime">계산 중</strong>
+        </div>
+        <p id="timeMode">시간대 분석 중</p>
+      </section>
+
+      <nav class="tabbar" aria-label="주요 메뉴">
+        <button class="tab-button active" data-tab="radar">레이더</button>
+        <button class="tab-button" data-tab="my">마이메뉴</button>
+      </nav>
+
+      <section class="tab-page active" id="radarPage">
+        <section class="watch-grid" aria-label="따릉이 경보 3곳">
+          <article class="watch-card" data-watch-card="current">
+            <div>
+              <p class="panel-label">1. 현재위치 기준</p>
+              <h2 data-watch-title>현재위치 확인 필요</h2>
+              <p data-watch-detail>현위치 버튼을 눌러 현재 위치를 허용해주세요.</p>
+            </div>
+            <div class="score-badge waiting" data-watch-score>
+              <span data-watch-label>대기</span>
+              <strong data-watch-value>--</strong>
+            </div>
+          </article>
+
+          <article class="watch-card" data-watch-card="saved-1">
+            <div>
+              <p class="panel-label">2. 저장 장소</p>
+              <h2 data-watch-title>첫 번째 장소를 저장하세요</h2>
+              <p data-watch-detail>마이메뉴에서 집, 사무실, 학교, 학원 등 자주 가는 곳을 저장하세요.</p>
+            </div>
+            <div class="score-badge waiting" data-watch-score>
+              <span data-watch-label>대기</span>
+              <strong data-watch-value>--</strong>
+            </div>
+          </article>
+
+          <article class="watch-card" data-watch-card="saved-2">
+            <div>
+              <p class="panel-label">3. 저장 장소</p>
+              <h2 data-watch-title>두 번째 장소를 저장하세요</h2>
+              <p data-watch-detail>두 번째로 자주 확인할 장소를 저장하세요.</p>
+            </div>
+            <div class="score-badge waiting" data-watch-score>
+              <span data-watch-label>대기</span>
+              <strong data-watch-value>--</strong>
+            </div>
+          </article>
+        </section>
+
+        <section class="notification-panel" aria-label="알림 설정">
+          <div>
+            <p class="panel-label">알림</p>
+            <h2>저장 장소 1 기준 레이다 알림</h2>
+            <p id="notificationStatus">알림시간은 오전 7시,<br />저녁 18시30분 입니다.</p>
+          </div>
+          <button id="notificationButton">알림 켜기</button>
+        </section>
+
+        <section class="map-header" id="mapSection">
+          <div>
+            <p class="panel-label">현재 위치 기준</p>
+            <h2 id="mapTitle">현재위치 주변 대여소</h2>
+            <p id="locationStatus">현위치 버튼을 누르면 현재 위치 기준으로 표시합니다.</p>
+          </div>
+          <button id="locationButton">현위치</button>
+        </section>
+
+        <section class="map-preview" aria-label="현재 위치 주변 대여소 지도">
+          <div id="kakaoMap" class="kakao-map" aria-hidden="true"></div>
+          <div class="map-grid"></div>
+          <div class="user-marker" aria-label="현재 위치"></div>
+          <div class="station-marker danger" style="left: 24%; top: 38%">1</div>
+          <div class="station-marker safe" style="left: 62%; top: 30%">8</div>
+          <div class="station-marker warning" style="left: 72%; top: 67%">3</div>
+          <div class="station-marker safe" style="left: 38%; top: 72%">5</div>
+        </section>
+
+        <section class="section-header">
+          <h2>대체 대여소</h2>
+          <button id="openMyButton">장소 저장</button>
+        </section>
+
+        <section class="station-list" id="stationList" aria-label="대여소 목록"></section>
+      </section>
+
+      <section class="tab-page" id="myPage">
+        <section class="my-panel" aria-label="장소 저장">
+          <div class="section-title">
+            <p class="panel-label">마이메뉴</p>
+            <h2>자주 가는 곳</h2>
+          </div>
+
+          <form class="place-form" id="placeForm">
+            <label>
+              분류
+              <select id="placeType">
+                <option value="집">집</option>
+                <option value="사무실">사무실</option>
+                <option value="학교">학교</option>
+                <option value="학원">학원</option>
+                <option value="기타">기타</option>
+              </select>
+            </label>
+            <label>
+              장소명
+              <input id="placeName" type="text" placeholder="예: 우리집, 회사, 학원" required />
+            </label>
+            <label>
+              주소
+              <input id="placeAddress" type="text" placeholder="예: 서울 강서구 ..." required />
+            </label>
+            <button type="submit">저장</button>
+          </form>
+
+          <section class="alarm-panel" aria-label="알림 시간 설정">
+            <div class="section-title">
+              <p class="panel-label">알림 시간</p>
+              <h2>저장 장소 1 기준</h2>
+            </div>
+            <div class="alarm-grid">
+              <label>
+                아침
+                <input id="morningAlarm" type="time" value="07:00" />
+              </label>
+              <label>
+                저녁
+                <input id="eveningAlarm" type="time" value="18:30" />
+              </label>
+            </div>
+            <button id="saveAlarmButton" type="button">알림 시간 저장</button>
+          </section>
+
+          <div class="place-list" id="placeList" aria-label="저장한 장소"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="./config.local.js"></script>
+    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=9f7d56ca3cb05f41c8a4dc6f7b5ba58a&libraries=services"></script>
+    <script src="./app.js?v=15"></script>
+  </body>
+</html>
