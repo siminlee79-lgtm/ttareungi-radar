@@ -134,6 +134,14 @@ h1 {
   box-shadow: 0 10px 26px rgba(20, 32, 29, 0.08);
 }
 
+.watch-card.is-waiting {
+  grid-template-columns: 1fr;
+}
+
+.watch-card.is-waiting .score-badge {
+  display: none;
+}
+
 .watch-card h2 {
   margin-top: 5px;
   font-size: 18px;
@@ -256,6 +264,10 @@ h1 {
   grid-template-columns: 1fr auto;
   gap: 14px;
   align-items: center;
+}
+
+.map-header-compact {
+  display: none;
 }
 
 .map-header button {

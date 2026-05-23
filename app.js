@@ -307,7 +307,7 @@ function getAreaAlert(areaName, center, now = new Date()) {
     return {
       title: `${areaName} 마감임박`,
       detailHTML: `${mainLine}<br />${alternativeLine}`,
-      label: "위험",
+      label: "마감임박",
       score: riskiest.risk.score,
       className: "danger",
     };
@@ -317,7 +317,7 @@ function getAreaAlert(areaName, center, now = new Date()) {
     return {
       title: `${areaName} 재고소진중`,
       detailHTML: `${escapeHTML(riskiest.name)} 현재 따릉이 ${riskiest.bikes}대입니다.<br />아직 가능성은 있지만 출발 전 한 번 더 확인하세요.`,
-      label: "주의",
+      label: "재고소진중",
       score: riskiest.risk.score,
       className: "warning",
     };
@@ -326,7 +326,7 @@ function getAreaAlert(areaName, center, now = new Date()) {
   return {
     title: `${areaName} 여유있음`,
     detailHTML: "좋아요. 주변 대여소 수급이 안정적입니다.<br />지금은 따릉이 타기 좋은 타이밍이에요.",
-    label: "안전",
+    label: "여유있음",
     score: riskiest.risk.score,
     className: "safe",
   };
@@ -342,6 +342,7 @@ function setWatchCard(card, alert) {
   card.querySelector("[data-watch-label]").textContent = alert.label;
   card.querySelector("[data-watch-value]").textContent = alert.score;
   card.querySelector("[data-watch-score]").className = `score-badge ${alert.className}`;
+  card.classList.toggle("is-waiting", alert.className === "waiting");
 }
 
 function getWatchedPlaces() {
