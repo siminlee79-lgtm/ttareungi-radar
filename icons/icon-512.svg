@@ -1,9 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="따릉이 레이더 아이콘">
-  <rect width="512" height="512" rx="86" fill="#0b6b57"/>
-  <circle cx="256" cy="256" r="154" fill="#d8f0e7"/>
-  <path d="M149 299h214" stroke="#0b6b57" stroke-width="32" stroke-linecap="round"/>
-  <circle cx="181" cy="315" r="54" fill="none" stroke="#14201d" stroke-width="27"/>
-  <circle cx="331" cy="315" r="54" fill="none" stroke="#14201d" stroke-width="27"/>
-  <path d="M208 315l43-91 43 91M251 224h75" fill="none" stroke="#14201d" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M256 102v54M256 356v54M102 256h54M356 256h54" stroke="#ffffff" stroke-width="22" stroke-linecap="round"/>
+  <rect width="512" height="512" rx="102" fill="#ffffff"/>
+  <circle cx="176" cy="314" r="80" fill="none" stroke="#27d884" stroke-width="32"/>
+  <circle cx="336" cy="314" r="80" fill="none" stroke="#27d884" stroke-width="32"/>
+  <path d="M176 314l64-128 64 128M240 186h91l-38 67" fill="none" stroke="#2f4050" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M149 246h121" stroke="#2f4050" stroke-width="28" stroke-linecap="round"/>
+  <path d="M282 162h64" stroke="#2f4050" stroke-width="28" stroke-linecap="round"/>
+  <path d="M352 148c53 27 85 80 85 141 0 88-71 160-160 160-59 0-110-32-138-77" fill="none" stroke="#27d884" stroke-width="22" stroke-linecap="round" opacity=".34"/>
+  <circle cx="176" cy="314" r="19" fill="#2f4050"/>
+  <circle cx="336" cy="314" r="19" fill="#2f4050"/>
+  <circle cx="141" cy="133" r="64" fill="#27d884"/>
+  <circle cx="299" cy="133" r="96" fill="#2f4050"/>
+  <circle cx="141" cy="133" r="28" fill="#ffffff"/>
 </svg>

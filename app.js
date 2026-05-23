@@ -3,7 +3,12 @@ const SEOUL_BIKE_API = LOCAL_SEOUL_OPEN_API_KEY
   ? `http://openapi.seoul.go.kr:8088/${LOCAL_SEOUL_OPEN_API_KEY}/json/bikeList`
   : "";
 const DEFAULT_CENTER = { lat: 37.5665, lng: 126.978 };
-const DEFAULT_ALARMS = { morning: "07:00", evening: "18:30", enabled: false };
+const DEFAULT_ALARMS = {
+  morning: "07:00",
+  evening: "18:30",
+  enabled: false,
+  targets: { saved1: true, saved2: true },
+};
 
 const fallbackStations = [
   { id: "demo-1", name: "홍대입구역 2번출구", bikes: 1, rackCount: 15, shared: 7, lat: 37.55762, lng: 126.92432 },
@@ -28,8 +33,13 @@ const placeAddress = document.querySelector("#placeAddress");
 const placeList = document.querySelector("#placeList");
 const morningAlarm = document.querySelector("#morningAlarm");
 const eveningAlarm = document.querySelector("#eveningAlarm");
+const alarmSaved1 = document.querySelector("#alarmSaved1");
+const alarmSaved2 = document.querySelector("#alarmSaved2");
 const saveAlarmButton = document.querySelector("#saveAlarmButton");
 const openMyButton = document.querySelector("#openMyButton");
+const installGuideButton = document.querySelector("#installGuideButton");
+const installGuideDialog = document.querySelector("#installGuideDialog");
+const installGuideClose = document.querySelector("#installGuideClose");
 const locationStatus = document.querySelector("#locationStatus");
 const mapTitle = document.querySelector("#mapTitle");
 const kakaoMapElement = document.querySelector("#kakaoMap");
@@ -51,6 +61,8 @@ let stations = [];
 let highlightedStationId = "";
 let kakaoMap = null;
 let kakaoOverlays = [];
+let pullStartY = 0;
+let isPullingToRefresh = false;
 
 function createId() {
   return window.crypto?.randomUUID ? window.crypto.randomUUID() : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -82,7 +94,12 @@ function loadAlarmSettings() {
   }
 
   try {
-    return { ...DEFAULT_ALARMS, ...JSON.parse(saved) };
+    const parsed = JSON.parse(saved);
+    return {
+      ...DEFAULT_ALARMS,
+      ...parsed,
+      targets: { ...DEFAULT_ALARMS.targets, ...parsed.targets },
+    };
   } catch {
     return { ...DEFAULT_ALARMS };
   }
@@ -217,7 +234,7 @@ function getRisk(station, now = new Date()) {
     return { label: "재고소진중", level: "low", className: "warning", score };
   }
 
-  return { label: "여유있음", level: "enough", className: "safe", score };
+  return { label: "여유", level: "enough", className: "safe", score };
 }
 
 function formatNow(now) {
@@ -283,12 +300,12 @@ function getAreaAlert(areaName, center, now = new Date()) {
     ...station,
     risk: getRisk(station, now),
   }));
-  const riskiest = [...nearby].sort((a, b) => b.risk.score - a.risk.score)[0];
+  const primary = nearby[0];
   const alternative = nearby
-    .filter((station) => station.id !== riskiest?.id && station.bikes > 2)
+    .filter((station) => station.id !== primary?.id && station.bikes > 2)
     .sort((a, b) => a.risk.score - b.risk.score || a.distanceMeters - b.distanceMeters)[0];
 
-  if (!riskiest) {
+  if (!primary) {
     return {
       title: `${areaName} 확인 중`,
       detailHTML: "대여소 정보를 불러오는 중입니다.",
@@ -298,8 +315,8 @@ function getAreaAlert(areaName, center, now = new Date()) {
     };
   }
 
-  if (riskiest.risk.level === "critical") {
-    const mainLine = `${escapeHTML(riskiest.name)} 현재 따릉이 ${riskiest.bikes}대입니다.`;
+  if (primary.risk.level === "critical") {
+    const mainLine = `${escapeHTML(primary.name)} 현재 따릉이 ${primary.bikes}대입니다.`;
     const alternativeLine = alternative
       ? `대체대여소는 <button class="inline-link" data-focus-station="${escapeHTML(alternative.id)}">${escapeHTML(alternative.name)}</button>입니다.<br />거리 ${alternative.distance}, 현재 따릉이 ${alternative.bikes}대입니다.`
       : "주변 대체대여소도 부족합니다.<br />조금 일찍 움직이는 것을 추천합니다.";
@@ -308,26 +325,26 @@ function getAreaAlert(areaName, center, now = new Date()) {
       title: `${areaName} 마감임박`,
       detailHTML: `${mainLine}<br />${alternativeLine}`,
       label: "마감임박",
-      score: riskiest.risk.score,
+      score: primary.risk.score,
       className: "danger",
     };
   }
 
-  if (riskiest.risk.level === "low") {
+  if (primary.risk.level === "low") {
     return {
       title: `${areaName} 재고소진중`,
-      detailHTML: `${escapeHTML(riskiest.name)} 현재 따릉이 ${riskiest.bikes}대입니다.<br />아직 가능성은 있지만 출발 전 한 번 더 확인하세요.`,
+      detailHTML: `${escapeHTML(primary.name)} 현재 따릉이 ${primary.bikes}대입니다.<br />아직 가능성은 있지만 출발 전 한 번 더 확인하세요.`,
       label: "재고소진중",
-      score: riskiest.risk.score,
+      score: primary.risk.score,
       className: "warning",
     };
   }
 
   return {
-    title: `${areaName} 여유있음`,
+    title: `${areaName} 여유`,
     detailHTML: "좋아요. 주변 대여소 수급이 안정적입니다.<br />지금은 따릉이 타기 좋은 타이밍이에요.",
-    label: "여유있음",
-    score: riskiest.risk.score,
+    label: "여유",
+    score: primary.risk.score,
     className: "safe",
   };
 }
@@ -346,14 +363,11 @@ function setWatchCard(card, alert) {
 }
 
 function getWatchedPlaces() {
-  return [
-    places.find((place) => place.role === "saved-1"),
-    places.find((place) => place.role === "saved-2"),
-  ];
+  return [places[0], places[1]];
 }
 
 function getPrimaryAlertPlace() {
-  return places.find((place) => place.role === "saved-1");
+  return places[0];
 }
 
 function renderWatchCards(now = new Date()) {
@@ -418,9 +432,18 @@ function renderAlarmSettings() {
     eveningAlarm.value = alarmSettings.evening;
   }
 
+  if (alarmSaved1) {
+    alarmSaved1.checked = alarmSettings.targets?.saved1 !== false;
+  }
+
+  if (alarmSaved2) {
+    alarmSaved2.checked = alarmSettings.targets?.saved2 !== false;
+  }
+
   if (notificationStatus) {
     const enabledText = alarmSettings.enabled ? "켜짐" : "꺼짐";
-    notificationStatus.innerHTML = `저장 장소 1 기준 레이다 알림 ${enabledText}.<br />알림시간은 오전 ${alarmSettings.morning},<br />저녁 ${alarmSettings.evening} 입니다.`;
+    const targetText = getAlarmTargetPlaces().map((place) => place.name).join(", ") || "저장 장소 1, 2";
+    notificationStatus.innerHTML = `${targetText} 기준 레이다 알림 ${enabledText}.<br />알림시간은 오전 ${alarmSettings.morning},<br />저녁 ${alarmSettings.evening} 입니다.`;
   }
 
   if (notificationButton && alarmSettings.enabled) {
@@ -453,13 +476,9 @@ function renderPlaces() {
       (place) => `
         <article class="place-card">
           <div>
-            <span>${escapeHTML(place.type)}${place.role === "saved-1" ? " · 레이더 1" : place.role === "saved-2" ? " · 레이더 2" : ""}</span>
+            <span>${escapeHTML(place.type)}</span>
             <h3>${escapeHTML(place.name)}</h3>
             <p>${escapeHTML(place.address)}${place.lat ? " · 위치 저장됨" : ""}</p>
-          </div>
-          <div class="place-actions">
-            <button data-role="saved-1" data-id="${escapeHTML(place.id)}">레이더1</button>
-            <button data-role="saved-2" data-id="${escapeHTML(place.id)}">레이더2</button>
           </div>
         </article>
       `,
@@ -598,19 +617,85 @@ function registerServiceWorker() {
   }
 }
 
-refreshButton.addEventListener("click", async () => {
+async function refreshRadar() {
   await fetchSeoulBikeStations();
   refreshButton.animate([{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }], {
     duration: 450,
     easing: "ease-out",
   });
+}
+
+function openInstallGuide() {
+  if (installGuideDialog) {
+    installGuideDialog.hidden = false;
+  }
+}
+
+function closeInstallGuide() {
+  if (installGuideDialog) {
+    installGuideDialog.hidden = true;
+  }
+}
+
+function setupPullToRefresh() {
+  window.addEventListener(
+    "touchstart",
+    (event) => {
+      if (window.scrollY > 0 || !event.touches[0]) {
+        return;
+      }
+
+      pullStartY = event.touches[0].clientY;
+      isPullingToRefresh = true;
+    },
+    { passive: true },
+  );
+
+  window.addEventListener(
+    "touchend",
+    async (event) => {
+      if (!isPullingToRefresh || !event.changedTouches[0]) {
+        return;
+      }
+
+      const pullDistance = event.changedTouches[0].clientY - pullStartY;
+      isPullingToRefresh = false;
+
+      if (window.scrollY === 0 && pullDistance > 82) {
+        await refreshRadar();
+      }
+    },
+    { passive: true },
+  );
+}
+
+refreshButton.addEventListener("click", refreshRadar);
+
+installGuideButton.addEventListener("click", openInstallGuide);
+installGuideClose.addEventListener("click", closeInstallGuide);
+installGuideDialog.addEventListener("click", (event) => {
+  if (event.target === installGuideDialog) {
+    closeInstallGuide();
+  }
 });
 
-saveAlarmButton.addEventListener("click", () => {
+saveAlarmButton.addEventListener("click", async () => {
+  let enabled = alarmSettings.enabled;
+
+  if ("Notification" in window) {
+    const permission = await Notification.requestPermission();
+    enabled = permission === "granted";
+  }
+
   alarmSettings = {
     ...alarmSettings,
+    enabled,
     morning: morningAlarm.value || DEFAULT_ALARMS.morning,
     evening: eveningAlarm.value || DEFAULT_ALARMS.evening,
+    targets: {
+      saved1: alarmSaved1?.checked ?? true,
+      saved2: alarmSaved2?.checked ?? true,
+    },
   };
   saveAlarmSettings();
   renderAlarmSettings();
@@ -634,10 +719,14 @@ notificationButton.addEventListener("click", async () => {
     enabled: true,
     morning: morningAlarm?.value || alarmSettings.morning,
     evening: eveningAlarm?.value || alarmSettings.evening,
+    targets: {
+      saved1: alarmSaved1?.checked ?? true,
+      saved2: alarmSaved2?.checked ?? true,
+    },
   };
   saveAlarmSettings();
   renderAlarmSettings();
-  const alert = getPrimaryPlaceAlert();
+  const alert = getAlarmNotificationAlert();
 
   new Notification("따릉이 레이더", {
     body: `${formatNow(new Date())} 기준 ${alert.title}. ${alert.text}`,
@@ -645,13 +734,27 @@ notificationButton.addEventListener("click", async () => {
   });
 });
 
-function getPrimaryPlaceAlert() {
-  const place = getPrimaryAlertPlace();
+function getAlarmTargetPlaces() {
+  const [firstPlace, secondPlace] = getWatchedPlaces();
+  const targets = alarmSettings.targets || DEFAULT_ALARMS.targets;
+  const selected = [];
 
+  if (targets.saved1 && firstPlace) {
+    selected.push(firstPlace);
+  }
+
+  if (targets.saved2 && secondPlace) {
+    selected.push(secondPlace);
+  }
+
+  return selected;
+}
+
+function getPlaceNotificationAlert(place) {
   if (!place || !place.lat || !place.lng) {
     return {
-      title: "저장 장소 1 설정 필요",
-      text: "마이메뉴에서 알림 기준 장소를 레이더1로 등록해주세요.",
+      title: "저장 장소 설정 필요",
+      text: "마이메뉴에서 알림 기준 장소를 등록해주세요.",
     };
   }
 
@@ -659,6 +762,22 @@ function getPrimaryPlaceAlert() {
   return {
     title: alert.title,
     text: alert.detailHTML.replace(/<br\s*\/?>/g, " ").replace(/<[^>]*>/g, ""),
+  };
+}
+
+function getAlarmNotificationAlert() {
+  const alerts = getAlarmTargetPlaces().map(getPlaceNotificationAlert);
+
+  if (!alerts.length) {
+    return {
+      title: "저장 장소 설정 필요",
+      text: "마이메뉴에서 저장 장소 1, 2를 등록해주세요.",
+    };
+  }
+
+  return {
+    title: "저장 장소 레이더 알림",
+    text: alerts.map((alert) => `${alert.title}. ${alert.text}`).join(" / "),
   };
 }
 
@@ -681,7 +800,7 @@ function checkScheduledNotification() {
     return;
   }
 
-  const alert = getPrimaryPlaceAlert();
+  const alert = getAlarmNotificationAlert();
   window.localStorage.setItem(alarmSentStorageKey, sentKey);
 
   new Notification("따릉이 레이더", {
@@ -695,21 +814,20 @@ placeForm.addEventListener("submit", async (event) => {
 
   const address = placeAddress.value.trim();
   const coords = await geocodePlace(address);
-  const role = places.some((place) => place.role === "saved-1")
-    ? places.some((place) => place.role === "saved-2")
-      ? ""
-      : "saved-2"
-    : "saved-1";
+  const nextPlaces = [
+    ...places,
+    {
+      id: createId(),
+      type: placeType.value,
+      name: placeName.value.trim(),
+      address,
+      lat: coords?.lat,
+      lng: coords?.lng,
+      role: "",
+    },
+  ];
 
-  places.push({
-    id: createId(),
-    type: placeType.value,
-    name: placeName.value.trim(),
-    address,
-    lat: coords?.lat,
-    lng: coords?.lng,
-    role,
-  });
+  places = nextPlaces.slice(-2);
 
   savePlaces();
   renderPlaces();
@@ -758,5 +876,6 @@ initKakaoMap();
 fetchSeoulBikeStations();
 setTimeout(requestCurrentLocation, 600);
 registerServiceWorker();
+setupPullToRefresh();
 setInterval(renderDashboard, 60 * 1000);
 setInterval(checkScheduledNotification, 30 * 1000);

@@ -6,7 +6,9 @@
     <meta name="theme-color" content="#0b6b57" />
     <title>따릉이 레이더</title>
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg" />
+    <link rel="apple-touch-icon" href="./icons/icon-192.svg" />
+    <link rel="stylesheet" href="./styles.css?v=22" />
   </head>
   <body>
     <main class="app-shell">
@@ -15,12 +17,20 @@
           <p class="eyebrow">Seoul Bike Radar</p>
           <h1>따릉이 레이더</h1>
         </div>
-        <button class="icon-button" id="refreshButton" aria-label="새로고침" title="새로고침">
-          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M19.2 11.8a7.2 7.2 0 1 1-2.05-5.05" stroke-width="1.7" />
-            <path d="M19.2 4.9v4.8h-4.8" stroke-width="1.7" />
-          </svg>
-        </button>
+        <div class="topbar-actions">
+          <button class="icon-button" id="installGuideButton" aria-label="홈 화면 추가 방법" title="홈 화면 추가 방법">
+            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 8.2a3.8 3.8 0 1 1 0 7.6 3.8 3.8 0 0 1 0-7.6Z" stroke-width="1.7" />
+              <path d="M12 2.8v2.1M12 19.1v2.1M4.4 4.4l1.5 1.5M18.1 18.1l1.5 1.5M2.8 12h2.1M19.1 12h2.1M4.4 19.6l1.5-1.5M18.1 5.9l1.5-1.5" stroke-width="1.7" />
+            </svg>
+          </button>
+          <button class="icon-button" id="refreshButton" aria-label="새로고침" title="새로고침">
+            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M19.2 11.8a7.2 7.2 0 1 1-2.05-5.05" stroke-width="1.7" />
+              <path d="M19.2 4.9v4.8h-4.8" stroke-width="1.7" />
+            </svg>
+          </button>
+        </div>
       </header>
 
       <section class="time-strip" aria-label="현재 날짜와 시간">
@@ -40,7 +50,6 @@
         <section class="watch-grid" aria-label="따릉이 경보 3곳">
           <article class="watch-card" data-watch-card="current">
             <div>
-              <p class="panel-label">1. 현재위치 기준</p>
               <h2 data-watch-title>현재위치 확인 필요</h2>
               <p data-watch-detail>앱을 열면 현재 위치 권한을 요청합니다.</p>
             </div>
@@ -52,7 +61,6 @@
 
           <article class="watch-card" data-watch-card="saved-1">
             <div>
-              <p class="panel-label">2. 저장 장소</p>
               <h2 data-watch-title>첫 번째 장소를 저장하세요</h2>
               <p data-watch-detail>마이메뉴에서 집, 사무실, 학교, 학원 등 자주 가는 곳을 저장하세요.</p>
             </div>
@@ -64,7 +72,6 @@
 
           <article class="watch-card" data-watch-card="saved-2">
             <div>
-              <p class="panel-label">3. 저장 장소</p>
               <h2 data-watch-title>두 번째 장소를 저장하세요</h2>
               <p data-watch-detail>두 번째로 자주 확인할 장소를 저장하세요.</p>
             </div>
@@ -75,10 +82,29 @@
           </article>
         </section>
 
+        <section class="status-guide" aria-label="레이더 상태 안내">
+          <div class="status-guide-item waiting">
+            <strong>대기</strong>
+            <span>위치 설정 대기중</span>
+          </div>
+          <div class="status-guide-item safe">
+            <strong>여유</strong>
+            <span>따릉이가 많아요</span>
+          </div>
+          <div class="status-guide-item warning">
+            <strong>재고소진중</strong>
+            <span>따릉이가 줄어들고 있어요</span>
+          </div>
+          <div class="status-guide-item danger">
+            <strong>마감임박</strong>
+            <span>따릉이가 별로 안남았어요</span>
+          </div>
+        </section>
+
         <section class="notification-panel" aria-label="알림 설정">
           <div>
             <p class="panel-label">알림</p>
-            <h2>저장 장소 1 기준 레이다 알림</h2>
+            <h2>저장 장소 레이더 알림</h2>
             <p id="notificationStatus">알림시간은 오전 7시,<br />저녁 18시30분 입니다.</p>
           </div>
           <button id="notificationButton">알림 켜기</button>
@@ -115,6 +141,7 @@
           <div class="section-title">
             <p class="panel-label">마이메뉴</p>
             <h2>자주 가는 곳</h2>
+            <p class="section-help">지정 장소 2곳을 설정할 수 있습니다.</p>
           </div>
 
           <form class="place-form" id="placeForm">
@@ -142,7 +169,17 @@
           <section class="alarm-panel" aria-label="알림 시간 설정">
             <div class="section-title">
               <p class="panel-label">알림 시간</p>
-              <h2>저장 장소 1 기준</h2>
+              <h2>저장 장소 1, 2 기준</h2>
+            </div>
+            <div class="alarm-targets" aria-label="알림 대상 장소">
+              <label>
+                <input id="alarmSaved1" type="checkbox" checked />
+                저장 장소 1
+              </label>
+              <label>
+                <input id="alarmSaved2" type="checkbox" checked />
+                저장 장소 2
+              </label>
             </div>
             <div class="alarm-grid">
               <label>
@@ -162,8 +199,37 @@
       </section>
     </main>
 
+    <div class="modal-backdrop" id="installGuideDialog" hidden>
+      <section class="install-modal" role="dialog" aria-modal="true" aria-labelledby="installGuideTitle">
+        <div class="modal-header">
+          <h2 id="installGuideTitle">홈 화면 추가 방법</h2>
+          <button class="modal-close" id="installGuideClose" type="button" aria-label="닫기">닫기</button>
+        </div>
+        <div class="install-guide-list">
+          <article>
+            <h3>iPhone Safari</h3>
+            <ol>
+              <li>Safari에서 따릉이 레이더를 엽니다.</li>
+              <li>하단 공유 버튼을 누릅니다.</li>
+              <li>홈 화면에 추가를 선택합니다.</li>
+              <li>추가를 누르면 앱처럼 실행됩니다.</li>
+            </ol>
+          </article>
+          <article>
+            <h3>Android Chrome</h3>
+            <ol>
+              <li>Chrome에서 따릉이 레이더를 엽니다.</li>
+              <li>오른쪽 위 메뉴를 누릅니다.</li>
+              <li>앱 설치 또는 홈 화면에 추가를 선택합니다.</li>
+              <li>설치를 누르면 앱처럼 실행됩니다.</li>
+            </ol>
+          </article>
+        </div>
+      </section>
+    </div>
+
     <script src="./config.local.js"></script>
     <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=34bb6af6aca7523a764d2047e36d5be4&libraries=services"></script>
-    <script src="./app.js?v=18"></script>
+    <script src="./app.js?v=22"></script>
   </body>
 </html>
