@@ -30,7 +30,6 @@ const morningAlarm = document.querySelector("#morningAlarm");
 const eveningAlarm = document.querySelector("#eveningAlarm");
 const saveAlarmButton = document.querySelector("#saveAlarmButton");
 const openMyButton = document.querySelector("#openMyButton");
-const locationButton = document.querySelector("#locationButton");
 const locationStatus = document.querySelector("#locationStatus");
 const mapTitle = document.querySelector("#mapTitle");
 const kakaoMapElement = document.querySelector("#kakaoMap");
@@ -362,7 +361,7 @@ function renderWatchCards(now = new Date()) {
   } else {
     setWatchCard(watchCards.current, {
       title: "현재위치 확인 필요",
-      detailHTML: "현위치 버튼을 눌러 현재 위치를 허용해주세요.<br />위치 권한이 꺼져 있으면 정확한 주변 대여소를 계산할 수 없습니다.",
+      detailHTML: "현재 위치 권한을 허용하면 주변 대여소를 자동으로 계산합니다.<br />권한을 거부하면 정확한 주변 대여소를 볼 수 없습니다.",
       label: "대기",
       score: "--",
       className: "waiting",
@@ -497,7 +496,7 @@ function requestCurrentLocation() {
     return;
   }
 
-  locationStatus.textContent = "현재 위치를 확인하는 중입니다.";
+  locationStatus.textContent = "현재 위치 권한을 요청하는 중입니다.";
 
   navigator.geolocation.getCurrentPosition(
     (position) => {
@@ -513,7 +512,7 @@ function requestCurrentLocation() {
     },
     () => {
       currentPosition = null;
-      locationStatus.textContent = "현재위치 권한이 꺼져 있습니다. 브라우저 위치 권한을 허용한 뒤 다시 눌러주세요.";
+      locationStatus.textContent = "현재위치 권한이 허용되지 않았습니다. Safari 주소창 설정에서 위치 권한을 허용하면 다시 계산됩니다.";
       renderDashboard();
     },
     { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 },
@@ -751,12 +750,12 @@ tabButtons.forEach((button) => {
 });
 
 openMyButton.addEventListener("click", () => switchTab("my"));
-locationButton.addEventListener("click", requestCurrentLocation);
 
 renderPlaces();
 renderDashboard();
 initKakaoMap();
 fetchSeoulBikeStations();
+setTimeout(requestCurrentLocation, 600);
 registerServiceWorker();
 setInterval(renderDashboard, 60 * 1000);
 setInterval(checkScheduledNotification, 30 * 1000);
