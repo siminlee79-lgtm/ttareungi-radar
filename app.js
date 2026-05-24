@@ -22,6 +22,7 @@ const alarmStorageKey = "ttareungi-radar-alarms-v1";
 const alarmSentStorageKey = "ttareungi-radar-alarm-sent-v1";
 const stationList = document.querySelector("#stationList");
 const refreshButton = document.querySelector("#refreshButton");
+const pullRefreshHint = document.querySelector("#pullRefreshHint");
 const notificationButton = document.querySelector("#notificationButton");
 const notificationStatus = document.querySelector("#notificationStatus");
 const currentDateTime = document.querySelector("#currentDateTime");
@@ -63,6 +64,7 @@ let kakaoMap = null;
 let kakaoOverlays = [];
 let pullStartY = 0;
 let isPullingToRefresh = false;
+let isRefreshing = false;
 
 function createId() {
   return window.crypto?.randomUUID ? window.crypto.randomUUID() : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -145,7 +147,7 @@ async function fetchSeoulBikeStations() {
 
     locationStatus.textContent = currentPosition
       ? `현재 위치 기준으로 실시간 대여소 ${allStations.length.toLocaleString("ko-KR")}곳을 불러왔습니다.`
-      : "현위치 버튼을 누르면 현재 위치 기준으로 다시 계산합니다.";
+      : "현재 위치 권한을 허용하면 위치 기준으로 다시 계산합니다.";
   } catch (error) {
     console.error(error);
     allStations = [];
@@ -212,29 +214,31 @@ function getTimeProfile(now) {
   return { label: "일반 시간대", pressure: 6, direction: "대여" };
 }
 
-function getRisk(station, now = new Date()) {
-  const timeProfile = getTimeProfile(now);
-  let score = 100 - station.bikes * 9 + timeProfile.pressure;
-
-  if (station.bikes <= 1) {
-    score += 22;
+function getStockRate(station) {
+  if (Number.isFinite(station.shared) && station.shared >= 0) {
+    return Math.min(100, Math.max(0, station.shared));
   }
 
-  if (station.bikes >= 7) {
-    score -= 18;
+  if (station.rackCount > 0) {
+    return Math.min(100, Math.max(0, (station.bikes / station.rackCount) * 100));
   }
 
-  score = Math.max(5, Math.min(99, Math.round(score)));
+  return station.bikes > 0 ? 100 : 0;
+}
 
-  if (score >= 78) {
-    return { label: "마감임박", level: "critical", className: "danger", score };
+function getRisk(station) {
+  const stockRate = getStockRate(station);
+  const score = Math.round(100 - stockRate);
+
+  if (stockRate < 30) {
+    return { label: "마감임박", level: "critical", className: "danger", score, stockRate };
   }
 
-  if (score >= 55) {
-    return { label: "재고소진중", level: "low", className: "warning", score };
+  if (stockRate < 60) {
+    return { label: "재고소진중", level: "low", className: "warning", score, stockRate };
   }
 
-  return { label: "여유", level: "enough", className: "safe", score };
+  return { label: "여유", level: "enough", className: "safe", score, stockRate };
 }
 
 function formatNow(now) {
@@ -261,6 +265,10 @@ function calculateDistance(a, b) {
 
 function formatDistance(meters) {
   return meters >= 1000 ? `${(meters / 1000).toFixed(1)}km` : `${Math.round(meters)}m`;
+}
+
+function formatBikeAvailability(count) {
+  return count > 0 ? `현재 따릉이 ${count}대` : "현재 대여 가능 따릉이가 없습니다";
 }
 
 function getNearbyStations(center, limit = 8) {
@@ -316,9 +324,9 @@ function getAreaAlert(areaName, center, now = new Date()) {
   }
 
   if (primary.risk.level === "critical") {
-    const mainLine = `${escapeHTML(primary.name)} 현재 따릉이 ${primary.bikes}대입니다.`;
+    const mainLine = `${escapeHTML(primary.name)} ${formatBikeAvailability(primary.bikes)}.`;
     const alternativeLine = alternative
-      ? `대체대여소는 <button class="inline-link" data-focus-station="${escapeHTML(alternative.id)}">${escapeHTML(alternative.name)}</button>입니다.<br />거리 ${alternative.distance}, 현재 따릉이 ${alternative.bikes}대입니다.`
+      ? `대체대여소는 <button class="inline-link" data-focus-station="${escapeHTML(alternative.id)}">${escapeHTML(alternative.name)}</button>입니다.<br />거리 ${alternative.distance}, ${formatBikeAvailability(alternative.bikes)}.`
       : "주변 대체대여소도 부족합니다.<br />조금 일찍 움직이는 것을 추천합니다.";
 
     return {
@@ -333,7 +341,7 @@ function getAreaAlert(areaName, center, now = new Date()) {
   if (primary.risk.level === "low") {
     return {
       title: `${areaName} 재고소진중`,
-      detailHTML: `${escapeHTML(primary.name)} 현재 따릉이 ${primary.bikes}대입니다.<br />아직 가능성은 있지만 출발 전 한 번 더 확인하세요.`,
+      detailHTML: `${escapeHTML(primary.name)} ${formatBikeAvailability(primary.bikes)}.<br />아직 가능성은 있지만 출발 전 한 번 더 확인하세요.`,
       label: "재고소진중",
       score: primary.risk.score,
       className: "warning",
@@ -364,10 +372,6 @@ function setWatchCard(card, alert) {
 
 function getWatchedPlaces() {
   return [places[0], places[1]];
-}
-
-function getPrimaryAlertPlace() {
-  return places[0];
 }
 
 function renderWatchCards(now = new Date()) {
@@ -461,7 +465,7 @@ function renderStations(list = stations) {
         <article class="station-card${highlightClass}" data-station-id="${escapeHTML(station.id)}">
           <div>
             <h3>${escapeHTML(station.name)}</h3>
-            <p>${station.distance || ""} · 현재 따릉이 ${station.bikes}대 · 거치율 ${station.shared}% · 수급점수 ${risk.score}</p>
+            <p>${station.distance || ""} · ${formatBikeAvailability(station.bikes)}</p>
           </div>
           <span class="station-pill ${risk.className}">${risk.label}</span>
         </article>
@@ -605,6 +609,58 @@ function focusStation(stationId) {
   mapSection.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function focusArea(areaName, center) {
+  highlightedStationId = "";
+  stations = getNearbyStations(center);
+  mapTitle.textContent = `${areaName} 주변 대여소`;
+  locationStatus.textContent = `${areaName} 기준으로 지도와 대체 대여소를 바꿨습니다.`;
+  renderStations(stations);
+  renderKakaoOverlays(stations);
+  moveKakaoMap(center.lat, center.lng);
+  mapSection.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function ensurePlaceCoords(place) {
+  if (!place || (place.lat && place.lng)) {
+    return place;
+  }
+
+  const coords = await geocodePlace(place.address);
+
+  if (!coords) {
+    return place;
+  }
+
+  place.lat = coords.lat;
+  place.lng = coords.lng;
+  savePlaces();
+  renderPlaces();
+  return place;
+}
+
+async function focusWatchCard(cardKey) {
+  if (cardKey === "current") {
+    if (!currentPosition) {
+      requestCurrentLocation();
+      return;
+    }
+
+    focusArea("현재위치", currentPosition);
+    return;
+  }
+
+  const [firstPlace, secondPlace] = getWatchedPlaces();
+  const place = await ensurePlaceCoords(cardKey === "saved-1" ? firstPlace : secondPlace);
+
+  if (!place || !place.lat || !place.lng) {
+    switchTab("my");
+    placeName.focus();
+    return;
+  }
+
+  focusArea(place.name, { lat: place.lat, lng: place.lng });
+}
+
 function switchTab(tabName) {
   tabButtons.forEach((button) => button.classList.toggle("active", button.dataset.tab === tabName));
   radarPage.classList.toggle("active", tabName === "radar");
@@ -618,11 +674,32 @@ function registerServiceWorker() {
 }
 
 async function refreshRadar() {
+  if (isRefreshing) {
+    return;
+  }
+
+  isRefreshing = true;
+  pullRefreshHint?.classList.remove("ready");
+  pullRefreshHint?.classList.add("visible");
+  if (pullRefreshHint) {
+    pullRefreshHint.textContent = "새로고침 중";
+  }
+
   await fetchSeoulBikeStations();
   refreshButton.animate([{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }], {
     duration: 450,
     easing: "ease-out",
   });
+
+  if (pullRefreshHint) {
+    pullRefreshHint.textContent = "새로고침 완료";
+    setTimeout(() => {
+      pullRefreshHint.classList.remove("visible", "ready");
+      pullRefreshHint.textContent = "놓으면 새로고침";
+    }, 500);
+  }
+
+  isRefreshing = false;
 }
 
 function openInstallGuide() {
@@ -641,7 +718,7 @@ function setupPullToRefresh() {
   window.addEventListener(
     "touchstart",
     (event) => {
-      if (window.scrollY > 0 || !event.touches[0]) {
+      if (window.scrollY > 0 || !event.touches[0] || isRefreshing) {
         return;
       }
 
@@ -649,6 +726,33 @@ function setupPullToRefresh() {
       isPullingToRefresh = true;
     },
     { passive: true },
+  );
+
+  window.addEventListener(
+    "touchmove",
+    (event) => {
+      if (!isPullingToRefresh || !event.touches[0]) {
+        return;
+      }
+
+      const pullDistance = event.touches[0].clientY - pullStartY;
+
+      if (pullDistance <= 0) {
+        return;
+      }
+
+      if (window.scrollY === 0) {
+        event.preventDefault();
+      }
+
+      pullRefreshHint?.classList.add("visible");
+      pullRefreshHint?.classList.toggle("ready", pullDistance > 82);
+
+      if (pullRefreshHint) {
+        pullRefreshHint.textContent = pullDistance > 82 ? "놓으면 새로고침" : "조금 더 당기세요";
+      }
+    },
+    { passive: false },
   );
 
   window.addEventListener(
@@ -663,6 +767,8 @@ function setupPullToRefresh() {
 
       if (window.scrollY === 0 && pullDistance > 82) {
         await refreshRadar();
+      } else {
+        pullRefreshHint?.classList.remove("visible", "ready");
       }
     },
     { passive: true },
@@ -677,6 +783,27 @@ installGuideDialog.addEventListener("click", (event) => {
   if (event.target === installGuideDialog) {
     closeInstallGuide();
   }
+});
+
+Object.entries(watchCards).forEach(([cardKey, card]) => {
+  if (!card) {
+    return;
+  }
+
+  card.tabIndex = 0;
+  card.addEventListener("click", (event) => {
+    if (event.target.closest("[data-focus-station]")) {
+      return;
+    }
+
+    focusWatchCard(cardKey);
+  });
+  card.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      focusWatchCard(cardKey);
+    }
+  });
 });
 
 saveAlarmButton.addEventListener("click", async () => {
@@ -782,7 +909,7 @@ function getAlarmNotificationAlert() {
 }
 
 function checkScheduledNotification() {
-  if (!alarmSettings.enabled || Notification.permission !== "granted") {
+  if (!("Notification" in window) || !alarmSettings.enabled || Notification.permission !== "granted") {
     return;
   }
 

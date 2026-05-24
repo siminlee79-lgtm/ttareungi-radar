@@ -1,8 +1,9 @@
 {
   "name": "따릉이 레이더",
-  "short_name": "따릉이레이다",
+  "short_name": "따릉이레이더",
   "description": "내가 매일 쓰는 대여소가 오늘 몇 시에 위험한지 미리 알려주는 따릉이 예보 앱",
-  "start_url": "./index.html",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#f6fbf8",
   "theme_color": "#27d884",

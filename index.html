@@ -4,13 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0b6b57" />
+    <meta name="apple-mobile-web-app-title" content="따릉이레이더" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
     <title>따릉이 레이더</title>
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg" />
     <link rel="apple-touch-icon" href="./icons/icon-192.svg" />
-    <link rel="stylesheet" href="./styles.css?v=22" />
+    <link rel="stylesheet" href="./styles.css?v=23" />
   </head>
   <body>
+    <div class="pull-refresh-hint" id="pullRefreshHint">놓으면 새로고침</div>
     <main class="app-shell">
       <header class="topbar">
         <div>
@@ -80,25 +83,6 @@
               <strong data-watch-value>--</strong>
             </div>
           </article>
-        </section>
-
-        <section class="status-guide" aria-label="레이더 상태 안내">
-          <div class="status-guide-item waiting">
-            <strong>대기</strong>
-            <span>위치 설정 대기중</span>
-          </div>
-          <div class="status-guide-item safe">
-            <strong>여유</strong>
-            <span>따릉이가 많아요</span>
-          </div>
-          <div class="status-guide-item warning">
-            <strong>재고소진중</strong>
-            <span>따릉이가 줄어들고 있어요</span>
-          </div>
-          <div class="status-guide-item danger">
-            <strong>마감임박</strong>
-            <span>따릉이가 별로 안남았어요</span>
-          </div>
         </section>
 
         <section class="notification-panel" aria-label="알림 설정">
@@ -181,6 +165,9 @@
                 저장 장소 2
               </label>
             </div>
+            <p class="alarm-note">
+              iPhone은 앱이 닫혀 있으면 현재 방식의 예약 알림이 실행되지 않습니다. 정해진 시간 자동 알림은 서버 푸시 단계에서 지원할 예정입니다.
+            </p>
             <div class="alarm-grid">
               <label>
                 아침
@@ -224,12 +211,20 @@
               <li>설치를 누르면 앱처럼 실행됩니다.</li>
             </ol>
           </article>
+          <article>
+            <h3>레이더 기준</h3>
+            <ul class="criteria-list">
+              <li><span class="safe-dot"></span><strong>여유</strong> 보관량이 총 거치대 수의 60% 이상</li>
+              <li><span class="warning-dot"></span><strong>재고소진중</strong> 보관량이 총 거치대 수의 30% 이상 60% 미만</li>
+              <li><span class="danger-dot"></span><strong>마감임박</strong> 보관량이 총 거치대 수의 30% 미만</li>
+            </ul>
+          </article>
         </div>
       </section>
     </div>
 
     <script src="./config.local.js"></script>
     <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=34bb6af6aca7523a764d2047e36d5be4&libraries=services"></script>
-    <script src="./app.js?v=22"></script>
+    <script src="./app.js?v=23"></script>
   </body>
 </html>
