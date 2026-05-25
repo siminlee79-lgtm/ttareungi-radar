@@ -10,7 +10,7 @@
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg" />
     <link rel="apple-touch-icon" href="./icons/icon-192.svg" />
-    <link rel="stylesheet" href="./styles.css?v=32" />
+    <link rel="stylesheet" href="./styles.css?v=33" />
   </head>
   <body>
     <div class="pull-refresh-hint" id="pullRefreshHint">놓으면 새로고침</div>
@@ -300,6 +300,33 @@
                 </article>
               </div>
             </section>
+            <section class="historical-stats" aria-label="과거 데이터 기반 통계">
+              <div class="live-stats-head">
+                <span>과거 데이터 통계</span>
+                <h3>대여이력으로 보는 대여소 순위</h3>
+                <p id="historicalStatsStatus">집계 데이터를 확인하는 중입니다.</p>
+              </div>
+              <div class="historical-stat-grid">
+                <article class="historical-stat-card">
+                  <div>
+                    <span>최다 이용 대여소 TOP</span>
+                    <h4>가장 많이 빌린 곳</h4>
+                  </div>
+                  <ol id="topRentalStations" class="ranking-list">
+                    <li>집계 데이터 준비 중</li>
+                  </ol>
+                </article>
+                <article class="historical-stat-card">
+                  <div>
+                    <span>파리날리는 대여소</span>
+                    <h4>이용이 적은 곳</h4>
+                  </div>
+                  <ol id="lowUsageStations" class="ranking-list">
+                    <li>집계 데이터 준비 중</li>
+                  </ol>
+                </article>
+              </div>
+            </section>
             <div class="tip-list">
               <details class="tip-card">
                 <summary>우리 동네 따릉이 지수</summary>
@@ -315,11 +342,11 @@
               </details>
               <details class="tip-card">
                 <summary>따릉이 최다 이용 대여소 TOP</summary>
-                <p>대여이력과 시간대별 이용정보를 합치면 서울에서 가장 많이 쓰이는 대여소를 뽑을 수 있습니다. 다음 단계에서 과거 데이터 집계 파일을 만들고, 단순 누적 TOP뿐 아니라 평일 출근 TOP, 주말 나들이 TOP, 야간 이용 TOP처럼 나눠 실제 순위 카드로 바꿀 예정입니다.</p>
+                <p>대여이력 CSV를 집계하면 서울에서 가장 많이 쓰이는 대여소를 뽑을 수 있습니다. 위 순위 카드는 `data/station-stats.json`이 생성되면 실제 TOP 목록으로 자동 전환됩니다.</p>
               </details>
               <details class="tip-card">
                 <summary>파리날리는 대여소 찾기</summary>
-                <p>대여소는 있는데 이용량이 낮은 곳도 찾을 수 있습니다. 다음 단계에서 월별 대여량, 주변 대여소 대비 이용률, 거치대 수 대비 회전율을 비교해 “있지만 잘 안 쓰이는 대여소”를 실제 순위로 뽑고, 정책 제안형 콘텐츠로도 확장할 수 있습니다.</p>
+                <p>대여소는 있는데 이용량이 낮은 곳도 찾을 수 있습니다. 월별 대여량과 대여소별 이용건수를 비교해 “있지만 잘 안 쓰이는 대여소”를 실제 순위로 뽑고, 정책 제안형 콘텐츠로도 확장할 수 있습니다.</p>
               </details>
               <details class="tip-card">
                 <summary>요일별 따릉이 이용 패턴</summary>
@@ -346,6 +373,17 @@
         </section>
       </section>
     </main>
+
+    <footer class="site-footer" aria-label="서비스 안내">
+      <strong>따릉이 레이더</strong>
+      <p>본 서비스는 서울시·서울시설공단·서울자전거 따릉이의 공식 서비스가 아닌 비공식 정보 제공 서비스입니다.</p>
+      <p>데이터 출처: 서울 열린데이터광장(data.seoul.go.kr). 실제 현장 상황과 일시적 차이가 있을 수 있습니다.</p>
+      <nav aria-label="정책 및 문의">
+        <a href="./privacy.html">개인정보처리방침</a>
+        <a href="mailto:bizmanlee56@gmail.com">문의하기</a>
+        <a href="https://data.seoul.go.kr/" target="_blank" rel="noreferrer">데이터 출처</a>
+      </nav>
+    </footer>
 
     <div class="modal-backdrop" id="installGuideDialog" hidden>
       <section class="install-modal" role="dialog" aria-modal="true" aria-labelledby="installGuideTitle">
@@ -386,6 +424,6 @@
 
     <script src="./config.local.js"></script>
     <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=34bb6af6aca7523a764d2047e36d5be4&libraries=services"></script>
-    <script src="./app.js?v=32"></script>
+    <script src="./app.js?v=33"></script>
   </body>
 </html>

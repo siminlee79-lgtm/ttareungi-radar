@@ -61,6 +61,9 @@ const statEmptyStations = document.querySelector("#statEmptyStations");
 const statCriticalStations = document.querySelector("#statCriticalStations");
 const statBestStation = document.querySelector("#statBestStation");
 const statBestStationDetail = document.querySelector("#statBestStationDetail");
+const historicalStatsStatus = document.querySelector("#historicalStatsStatus");
+const topRentalStations = document.querySelector("#topRentalStations");
+const lowUsageStations = document.querySelector("#lowUsageStations");
 const radarPage = document.querySelector("#radarPage");
 const placesPage = document.querySelector("#placesPage");
 const tipsPage = document.querySelector("#tipsPage");
@@ -532,6 +535,57 @@ function renderLiveStats(list = stations) {
     statBestStationDetail.textContent = "주변 대여소 계산 중";
     liveStatsSummary.textContent = "위치와 대여소 정보를 불러오면 실시간 통계를 보여드립니다.";
   }
+}
+
+async function loadHistoricalStats() {
+  if (!historicalStatsStatus || !topRentalStations || !lowUsageStations) {
+    return;
+  }
+
+  try {
+    const response = await fetch("./data/station-stats.json", { cache: "no-store" });
+
+    if (!response.ok) {
+      throw new Error("stats file not found");
+    }
+
+    const stats = await response.json();
+    renderHistoricalStats(stats);
+  } catch {
+    historicalStatsStatus.textContent = "과거 대여이력 CSV를 집계하면 실제 순위가 표시됩니다.";
+    renderRankingList(topRentalStations, []);
+    renderRankingList(lowUsageStations, []);
+  }
+}
+
+function renderHistoricalStats(stats) {
+  const topStations = Array.isArray(stats.topRentalStations) ? stats.topRentalStations : [];
+  const lowStations = Array.isArray(stats.lowUsageStations) ? stats.lowUsageStations : [];
+  const generatedText = stats.generatedAt ? ` · ${new Date(stats.generatedAt).toLocaleDateString("ko-KR")} 집계` : "";
+  const sourceText = stats.sourceFiles?.length ? `원본 ${stats.sourceFiles.length}개 파일` : "원본 데이터 대기";
+
+  historicalStatsStatus.textContent = `${sourceText}${generatedText}`;
+  renderRankingList(topRentalStations, topStations);
+  renderRankingList(lowUsageStations, lowStations);
+}
+
+function renderRankingList(element, items) {
+  if (!items.length) {
+    element.innerHTML = "<li>집계 데이터 준비 중</li>";
+    return;
+  }
+
+  element.innerHTML = items
+    .slice(0, 5)
+    .map(
+      (item) => `
+        <li>
+          <strong>${escapeHTML(item.stationName || item.name || "대여소명 없음")}</strong>
+          <span>${Number(item.usageCount || 0).toLocaleString("ko-KR")}건</span>
+        </li>
+      `,
+    )
+    .join("");
 }
 
 function renderPlaces() {
@@ -1207,6 +1261,7 @@ openMyButton?.addEventListener("click", () => switchTab("places"));
 
 renderPlaces();
 renderDashboard();
+loadHistoricalStats();
 initKakaoMap();
 fetchSeoulBikeStations();
 setTimeout(requestCurrentLocation, 600);

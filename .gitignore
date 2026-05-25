@@ -4,3 +4,7 @@ node_modules/
 .wrangler/
 .dev.vars
 config.local.js
+raw-data/**/*.csv
+raw-data/**/*.xlsx
+raw-data/**/*.xls
+raw-data/**/*.zip
