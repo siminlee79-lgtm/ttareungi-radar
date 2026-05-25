@@ -36,6 +36,8 @@ const placeType = document.querySelector("#placeType");
 const placeName = document.querySelector("#placeName");
 const placeAddress = document.querySelector("#placeAddress");
 const placeList = document.querySelector("#placeList");
+const placeFormStatus = document.querySelector("#placeFormStatus");
+const placeSubmitButton = document.querySelector("#placeSubmitButton");
 const morningAlarm = document.querySelector("#morningAlarm");
 const eveningAlarm = document.querySelector("#eveningAlarm");
 const saved1MorningAlarm = document.querySelector("#saved1MorningAlarm");
@@ -74,6 +76,7 @@ let kakaoOverlays = [];
 let pullStartY = 0;
 let isPullingToRefresh = false;
 let isRefreshing = false;
+let editingPlaceId = "";
 
 function createId() {
   return window.crypto?.randomUUID ? window.crypto.randomUUID() : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -343,7 +346,7 @@ function getAreaAlert(areaName, center, now = new Date()) {
       : "주변 대체대여소도 부족합니다.<br />조금 일찍 움직이는 것을 추천합니다.";
 
     return {
-      title: `${areaName} 마감임박`,
+      title: areaName,
       detailHTML: `${mainLine}<br />${alternativeLine}`,
       label: "마감임박",
       score: primary.risk.score,
@@ -353,7 +356,7 @@ function getAreaAlert(areaName, center, now = new Date()) {
 
   if (primary.risk.level === "low") {
     return {
-      title: `${areaName} 재고소진중`,
+      title: areaName,
       detailHTML: `${escapeHTML(primary.name)} ${formatBikeAvailability(primary.bikes)}.<br />아직 가능성은 있지만 출발 전 한 번 더 확인하세요.`,
       label: "재고소진중",
       score: primary.risk.score,
@@ -362,7 +365,7 @@ function getAreaAlert(areaName, center, now = new Date()) {
   }
 
   return {
-    title: `${areaName} 여유`,
+    title: areaName,
     detailHTML: "좋아요. 주변 대여소 수급이 안정적입니다.<br />지금은 따릉이 타기 좋은 타이밍이에요.",
     label: "여유",
     score: primary.risk.score,
@@ -513,12 +516,64 @@ function renderPlaces() {
             <h3>${escapeHTML(place.name)}</h3>
             <p>${escapeHTML(place.address)}${place.lat ? " · 위치 저장됨" : ""}</p>
           </div>
+          <div class="place-actions">
+            <button type="button" data-place-action="edit" data-id="${escapeHTML(place.id)}">수정</button>
+            <button type="button" data-place-action="delete" data-id="${escapeHTML(place.id)}">삭제</button>
+          </div>
         </article>
       `,
     )
     .join("");
 
   renderDashboard();
+}
+
+function setPlaceFormStatus(message = "", type = "") {
+  if (!placeFormStatus) {
+    return;
+  }
+
+  placeFormStatus.textContent = message;
+  placeFormStatus.dataset.type = type;
+}
+
+function resetPlaceForm() {
+  editingPlaceId = "";
+  placeForm.reset();
+  placeType.value = "집";
+  setPlaceFormStatus("");
+
+  if (placeSubmitButton) {
+    placeSubmitButton.textContent = "저장";
+  }
+}
+
+function startEditPlace(place) {
+  editingPlaceId = place.id;
+  placeType.value = place.type || "집";
+  placeName.value = place.name || "";
+  placeAddress.value = place.address || "";
+
+  if (placeSubmitButton) {
+    placeSubmitButton.textContent = "수정 저장";
+  }
+
+  setPlaceFormStatus("주소를 바꾼 뒤 수정 저장을 누르면 기존 장소가 업데이트됩니다.", "info");
+  placeName.focus();
+}
+
+function showRadarNotification(body) {
+  const notification = new Notification("따릉이 레이더", {
+    body,
+    icon: "./icons/icon-192.svg",
+  });
+
+  notification.onclick = () => {
+    window.focus();
+    switchTab("radar");
+    (mapPreview || mapSection).scrollIntoView({ behavior: "smooth", block: "start" });
+    notification.close();
+  };
 }
 
 function geocodePlace(address) {
@@ -528,16 +583,31 @@ function geocodePlace(address) {
       return;
     }
 
+    const toCoords = (item) => ({
+      lat: Number(item.y),
+      lng: Number(item.x),
+    });
+
     const geocoder = new kakao.maps.services.Geocoder();
     geocoder.addressSearch(address, (result, status) => {
-      if (status !== kakao.maps.services.Status.OK || !result[0]) {
+      if (status === kakao.maps.services.Status.OK && result[0]) {
+        resolve(toCoords(result[0]));
+        return;
+      }
+
+      if (!kakao.maps.services.Places) {
         resolve(null);
         return;
       }
 
-      resolve({
-        lat: Number(result[0].y),
-        lng: Number(result[0].x),
+      const placesSearch = new kakao.maps.services.Places();
+      placesSearch.keywordSearch(address, (placeResult, placeStatus) => {
+        if (placeStatus !== kakao.maps.services.Status.OK || !placeResult[0]) {
+          resolve(null);
+          return;
+        }
+
+        resolve(toCoords(placeResult[0]));
       });
     });
   });
@@ -904,10 +974,7 @@ notificationButton.addEventListener("click", async () => {
   renderAlarmSettings();
   const alert = getAlarmNotificationAlert();
 
-  new Notification("따릉이 레이더", {
-    body: `${formatNow(new Date())} 기준 ${alert.title}. ${alert.text}`,
-    icon: "./icons/icon-192.svg",
-  });
+  showRadarNotification(`${formatNow(new Date())} 기준 ${alert.title}. ${alert.text}`);
 });
 
 function getAlarmTargetPlaces() {
@@ -989,36 +1056,63 @@ function checkScheduledNotification() {
   });
   window.localStorage.setItem(alarmSentStorageKey, sentKey);
 
-  new Notification("따릉이 레이더", {
-    body: alertTexts.join(" / "),
-    icon: "./icons/icon-192.svg",
-  });
+  showRadarNotification(alertTexts.join(" / "));
 }
 
 placeForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const address = placeAddress.value.trim();
-  const coords = await geocodePlace(address);
-  const nextPlaces = [
-    ...places,
-    {
-      id: createId(),
-      type: placeType.value,
-      name: placeName.value.trim(),
-      address,
-      lat: coords?.lat,
-      lng: coords?.lng,
-      role: "",
-    },
-  ];
+  const name = placeName.value.trim();
+  const editingPlace = places.find((place) => place.id === editingPlaceId);
+  const canReuseCoords =
+    editingPlace &&
+    editingPlace.address === address &&
+    Number.isFinite(Number(editingPlace.lat)) &&
+    Number.isFinite(Number(editingPlace.lng));
 
-  places = nextPlaces.slice(-2);
+  setPlaceFormStatus("주소를 확인하는 중입니다.", "info");
+  if (placeSubmitButton) {
+    placeSubmitButton.disabled = true;
+  }
+
+  const coords = canReuseCoords ? { lat: Number(editingPlace.lat), lng: Number(editingPlace.lng) } : await geocodePlace(address);
+
+  if (placeSubmitButton) {
+    placeSubmitButton.disabled = false;
+  }
+
+  if (!coords) {
+    const message = window.kakao?.maps?.services
+      ? "주소를 찾지 못했어요. 도로명, 건물명, 지번을 조금 더 정확히 입력해주세요."
+      : "주소검색 연결이 막혔어요. 로컬 127.0.0.1 대신 배포 주소나 localhost에서 다시 확인해주세요.";
+    setPlaceFormStatus(message, "error");
+    placeAddress.focus();
+    return;
+  }
+
+  const nextPlace = {
+    id: editingPlaceId || createId(),
+    type: placeType.value,
+    name,
+    address,
+    lat: coords.lat,
+    lng: coords.lng,
+    role: "",
+  };
+
+  const wasEditing = Boolean(editingPlaceId);
+
+  if (wasEditing) {
+    places = places.map((place) => (place.id === editingPlaceId ? { ...place, ...nextPlace, role: place.role || "" } : place));
+  } else {
+    places = [...places, nextPlace].slice(-2);
+  }
 
   savePlaces();
   renderPlaces();
-  placeForm.reset();
-  placeType.value = "집";
+  resetPlaceForm();
+  setPlaceFormStatus(wasEditing ? "장소를 수정했습니다." : "장소를 저장했습니다.", "success");
 });
 
 placeList.addEventListener("click", (event) => {
@@ -1028,8 +1122,30 @@ placeList.addEventListener("click", (event) => {
     return;
   }
 
-  const role = button.dataset.role;
+  const action = button.dataset.placeAction;
   const id = button.dataset.id;
+  const place = places.find((item) => item.id === id);
+
+  if (action === "edit" && place) {
+    startEditPlace(place);
+    placeForm.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+
+  if (action === "delete") {
+    places = places.filter((item) => item.id !== id);
+    savePlaces();
+    renderPlaces();
+    resetPlaceForm();
+    setPlaceFormStatus("장소를 삭제했습니다.", "success");
+    return;
+  }
+
+  const role = button.dataset.role;
+
+  if (!role) {
+    return;
+  }
 
   places = places.map((place) => ({
     ...place,

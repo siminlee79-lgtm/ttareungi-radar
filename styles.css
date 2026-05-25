@@ -750,6 +750,22 @@ h1 {
   min-height: 44px;
 }
 
+.form-status {
+  min-height: 18px;
+  margin: -2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.form-status[data-type="error"] {
+  color: #c24136;
+}
+
+.form-status[data-type="success"] {
+  color: var(--green);
+}
+
 .place-list {
   display: grid;
   gap: 10px;
@@ -796,6 +812,10 @@ h1 {
   padding: 0 8px;
   background: var(--text);
   font-size: 12px;
+}
+
+.place-actions button[data-place-action="delete"] {
+  background: #6f7772;
 }
 
 .section-help {
