@@ -1,6 +1,90 @@
 {
-  "generatedAt": "",
-  "sourceFiles": [],
-  "topRentalStations": [],
-  "lowUsageStations": []
+  "generatedAt": "2026-05-25T23:34:12.583Z",
+  "sourceFiles": [
+    "daily-2512.csv"
+  ],
+  "topRentalStations": [
+    {
+      "stationName": "마곡나루역 2번 출구",
+      "usageCount": 9540
+    },
+    {
+      "stationName": "마곡나루역 5번출구 뒤편",
+      "usageCount": 7163
+    },
+    {
+      "stationName": "마곡나루역 3번 출구",
+      "usageCount": 6548
+    },
+    {
+      "stationName": "롯데월드타워(잠실역2번출구 쪽)",
+      "usageCount": 5917
+    },
+    {
+      "stationName": "발산역 1번, 9번 인근 대여소",
+      "usageCount": 5234
+    },
+    {
+      "stationName": "영등포구청역 7번출구",
+      "usageCount": 4900
+    },
+    {
+      "stationName": "마곡역 7번출구",
+      "usageCount": 4154
+    },
+    {
+      "stationName": "신도림역 3번출구",
+      "usageCount": 4026
+    },
+    {
+      "stationName": "송파구청",
+      "usageCount": 4025
+    },
+    {
+      "stationName": "마곡13단지 정문 앞",
+      "usageCount": 3972
+    }
+  ],
+  "lowUsageStations": [
+    {
+      "stationName": "봉은사역6번출구(현대아이파크타워앞)",
+      "usageCount": 1
+    },
+    {
+      "stationName": "신림역 5번출구",
+      "usageCount": 1
+    },
+    {
+      "stationName": "유광사여성병원",
+      "usageCount": 1
+    },
+    {
+      "stationName": "신대방역 2번 출구",
+      "usageCount": 2
+    },
+    {
+      "stationName": "롯데캐슬골드파크1차 서문",
+      "usageCount": 3
+    },
+    {
+      "stationName": "새정이마을버스정류장 앞",
+      "usageCount": 6
+    },
+    {
+      "stationName": "탑성마을입구",
+      "usageCount": 7
+    },
+    {
+      "stationName": "보문역6번출구 앞",
+      "usageCount": 9
+    },
+    {
+      "stationName": "순흥안씨묘 건너편",
+      "usageCount": 11
+    },
+    {
+      "stationName": "왕십리 자이아파트(101동 앞)",
+      "usageCount": 11
+    }
+  ]
 }

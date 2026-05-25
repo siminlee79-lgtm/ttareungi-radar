@@ -1,11 +1,10 @@
-const CACHE_NAME = "ttareungi-radar-v34";
+const CACHE_NAME = "ttareungi-radar-v35";
 const APP_SHELL = "./";
 const APP_ASSETS = [
   APP_SHELL,
-  "./styles.css?v=34",
-  "./app.js?v=34",
+  "./styles.css?v=35",
+  "./app.js?v=35",
   "./privacy.html",
-  "./data/station-stats.json",
   "./manifest.webmanifest",
   "./icons/icon-192.svg",
   "./icons/icon-512.svg",
@@ -31,8 +30,25 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;
+  const url = new URL(request.url);
 
   if (request.method !== "GET") {
+    return;
+  }
+
+  if (url.pathname.endsWith("/data/station-stats.json")) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok && !response.redirected) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+
+          return response;
+        })
+        .catch(() => caches.match(request)),
+    );
     return;
   }
 

@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { TextDecoder } = require("util");
 
 const projectRoot = path.resolve(__dirname, "..");
 const inputDir = path.join(projectRoot, "raw-data", "daily-usage");
@@ -57,12 +58,18 @@ function parseCSV(text) {
 }
 
 function findColumn(headers, candidates) {
+  const exactIndex = headers.findIndex((header) => candidates.some((candidate) => header.toLowerCase() === candidate.toLowerCase()));
+
+  if (exactIndex >= 0) {
+    return exactIndex;
+  }
+
   return headers.findIndex((header) => candidates.some((candidate) => header.includes(candidate)));
 }
 
 function readCSVFile(filePath) {
   const buffer = fs.readFileSync(filePath);
-  const text = buffer.toString("utf8").replace(/^\uFEFF/, "");
+  const text = decodeCSV(buffer).replace(/^\uFEFF/, "");
   const rows = parseCSV(text);
 
   if (rows.length < 2) {
@@ -81,6 +88,16 @@ function readCSVFile(filePath) {
     stationName: String(row[stationIndex] || "").trim(),
     usageCount: Number(String(row[countIndex] || "0").replaceAll(",", "").trim()) || 0,
   }));
+}
+
+function decodeCSV(buffer) {
+  const utf8Text = new TextDecoder("utf-8", { fatal: false }).decode(buffer);
+
+  if (!utf8Text.includes("�")) {
+    return utf8Text;
+  }
+
+  return new TextDecoder("euc-kr", { fatal: false }).decode(buffer);
 }
 
 function normalizeStationName(name) {
