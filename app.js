@@ -3,6 +3,8 @@ const SEOUL_BIKE_API = LOCAL_SEOUL_OPEN_API_KEY
   ? `http://openapi.seoul.go.kr:8088/${LOCAL_SEOUL_OPEN_API_KEY}/json/bikeList`
   : "";
 const DEFAULT_CENTER = { lat: 37.5665, lng: 126.978 };
+const LOCATION_FALLBACK_MESSAGE =
+  "지하철이나 실내에서는 현재위치 확인이 어려울 수 있어요.<br />저장한 장소 기준으로 따릉이 상황을 확인해보세요.";
 const DEFAULT_ALARMS = {
   morning: "07:00",
   evening: "18:30",
@@ -31,6 +33,7 @@ const notificationButton = document.querySelector("#notificationButton");
 const notificationStatus = document.querySelector("#notificationStatus");
 const currentDateTime = document.querySelector("#currentDateTime");
 const timeMode = document.querySelector("#timeMode");
+const brandHomeButton = document.querySelector("#brandHomeButton");
 const placeForms = document.querySelectorAll("[data-place-form]");
 const placeList = document.querySelector("#placeList");
 const morningAlarm = document.querySelector("#morningAlarm");
@@ -76,6 +79,7 @@ const watchCards = {
 let places = loadPlaces();
 let alarmSettings = loadAlarmSettings();
 let currentPosition = null;
+let locationFailed = false;
 let allStations = [];
 let stations = [];
 let highlightedStationId = "";
@@ -177,7 +181,9 @@ async function fetchSeoulBikeStations() {
 
     locationStatus.textContent = currentPosition
       ? `현재 위치 기준으로 실시간 대여소 ${allStations.length.toLocaleString("ko-KR")}곳을 불러왔습니다.`
-      : "현재 위치 권한을 허용하면 위치 기준으로 다시 계산합니다.";
+      : locationFailed
+        ? getPlainLocationFallbackMessage()
+        : "현재 위치 권한을 허용하면 위치 기준으로 다시 계산합니다.";
   } catch (error) {
     console.error(error);
     allStations = [];
@@ -424,6 +430,14 @@ function getPlaceDisplayName(place) {
 function renderWatchCards(now = new Date()) {
   if (currentPosition) {
     setWatchCard(watchCards.current, getAreaAlert("🏁 현재위치", currentPosition, now));
+  } else if (locationFailed) {
+    setWatchCard(watchCards.current, {
+      title: "🏁 현재위치 확인 어려움",
+      detailHTML: LOCATION_FALLBACK_MESSAGE,
+      label: "대기",
+      score: "--",
+      className: "waiting",
+    });
   } else {
     setWatchCard(watchCards.current, {
       title: "🏁 현재위치 확인 필요",
@@ -463,6 +477,10 @@ function renderSavedWatchCard(card, place, fallbackName, now) {
   }
 
   setWatchCard(card, getAreaAlert(getPlaceDisplayName(place), { lat: place.lat, lng: place.lng }, now));
+}
+
+function getPlainLocationFallbackMessage() {
+  return LOCATION_FALLBACK_MESSAGE.replace("<br />", " ");
 }
 
 function renderDashboard() {
@@ -711,10 +729,13 @@ function geocodePlace(address) {
 
 function requestCurrentLocation() {
   if (!("geolocation" in navigator)) {
-    locationStatus.textContent = "이 브라우저는 현재 위치를 지원하지 않습니다.";
+    locationFailed = true;
+    locationStatus.textContent = getPlainLocationFallbackMessage();
+    renderDashboard();
     return;
   }
 
+  locationFailed = false;
   locationStatus.textContent = "현재 위치 권한을 요청하는 중입니다.";
 
   navigator.geolocation.getCurrentPosition(
@@ -723,15 +744,18 @@ function requestCurrentLocation() {
         lat: position.coords.latitude,
         lng: position.coords.longitude,
       };
+      locationFailed = false;
 
       mapTitle.textContent = "현재위치 주변 대여소";
       locationStatus.textContent = `현재위치 확인 완료: ${currentPosition.lat.toFixed(4)}, ${currentPosition.lng.toFixed(4)}`;
       moveKakaoMap(currentPosition.lat, currentPosition.lng);
       updateNearbyStations(currentPosition);
     },
-    () => {
+    (error) => {
       currentPosition = null;
-      locationStatus.textContent = "현재위치 권한이 허용되지 않았습니다. Safari 주소창 설정에서 위치 권한을 허용하면 다시 계산됩니다.";
+      locationFailed = true;
+      console.warn("현재위치 확인 실패", error);
+      locationStatus.textContent = getPlainLocationFallbackMessage();
       renderDashboard();
     },
     { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 },
@@ -1251,6 +1275,11 @@ document.addEventListener("click", (event) => {
 
 tabButtons.forEach((button) => {
   button.addEventListener("click", () => switchTab(button.dataset.tab));
+});
+
+brandHomeButton?.addEventListener("click", () => {
+  switchTab("radar");
+  window.scrollTo({ top: 0, behavior: "smooth" });
 });
 
 tipCategoryButtons.forEach((button) => {
