@@ -195,9 +195,9 @@ h1 {
 }
 
 .watch-card .score-badge {
-  min-width: 86px;
-  min-height: 54px;
-  padding: 10px 12px;
+  min-width: 104px;
+  min-height: 62px;
+  padding: 12px 14px;
 }
 
 .watch-card .score-badge strong {
@@ -214,7 +214,7 @@ h1 {
 
 .watch-card h2 {
   margin-top: 5px;
-  font-size: 18px;
+  font-size: 19px;
 }
 
 .watch-card p:last-child {
@@ -254,7 +254,7 @@ h1 {
 }
 
 .score-badge span {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 900;
 }
 
@@ -537,24 +537,38 @@ h1 {
 
 .tabbar {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 14px;
-  padding: 4px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  margin: 4px 0 16px;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
 }
 
 .tab-button {
-  min-height: 40px;
+  position: relative;
+  min-height: 52px;
+  padding: 0 4px 10px;
+  border-radius: 0;
   background: transparent;
   color: var(--muted);
+  font-size: 17px;
+  font-weight: 900;
 }
 
 .tab-button.active {
+  background: transparent;
+  color: var(--green);
+}
+
+.tab-button.active::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: -1px;
+  height: 4px;
+  border-radius: 999px;
   background: var(--green);
-  color: var(--text);
 }
 
 .tab-page {
@@ -593,7 +607,38 @@ h1 {
 .place-form {
   display: grid;
   gap: 10px;
-  margin-top: 14px;
+  margin-top: 0;
+}
+
+.place-slot-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.place-slot-card {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.slot-heading {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 2px;
+}
+
+.slot-heading span {
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.slot-heading strong {
+  color: var(--text);
+  font-size: 17px;
+  line-height: 1.35;
 }
 
 .alarm-panel {
@@ -737,17 +782,19 @@ h1 {
 .place-form input,
 .place-form select {
   width: 100%;
-  min-height: 42px;
+  min-height: 50px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
   color: var(--text);
   font: inherit;
   padding: 0 12px;
+  font-size: 16px;
+  font-weight: 800;
 }
 
 .place-form button {
-  min-height: 44px;
+  min-height: 50px;
 }
 
 .form-status {
@@ -770,6 +817,166 @@ h1 {
   display: grid;
   gap: 10px;
   margin-top: 14px;
+}
+
+.tips-panel {
+  padding: 16px;
+  border: 1px solid rgba(39, 216, 132, 0.24);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.tip-category-bar {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.tip-category {
+  flex: 0 0 auto;
+  min-height: 46px;
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text);
+  box-shadow: 0 8px 18px rgba(20, 32, 29, 0.12);
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.tip-category.active {
+  border-color: rgba(39, 216, 132, 0.48);
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.tip-panel {
+  display: none;
+}
+
+.tip-panel.active {
+  display: block;
+}
+
+.tip-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.live-stats {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid rgba(39, 216, 132, 0.26);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(39, 216, 132, 0.13), #fff);
+}
+
+.live-stats-head span {
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.live-stats-head h3 {
+  margin-top: 4px;
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.live-stats-head p {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.live-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.live-stat-card {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.live-stat-card.wide {
+  grid-column: 1 / -1;
+}
+
+.live-stat-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.live-stat-card strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--green);
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+
+.live-stat-card p {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.tip-card {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.tip-card summary {
+  cursor: pointer;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.35;
+  list-style: none;
+}
+
+.tip-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.tip-card summary::after {
+  content: "+";
+  float: right;
+  color: var(--green);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.tip-card[open] summary::after {
+  content: "-";
+}
+
+.tip-card p {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.65;
 }
 
 .place-card {

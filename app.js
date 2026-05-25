@@ -9,8 +9,8 @@ const DEFAULT_ALARMS = {
   enabled: false,
   targets: { saved1: true, saved2: true },
   placeTimes: {
-    saved1: { morning: "07:00", evening: "18:30" },
-    saved2: { morning: "08:00", evening: "19:00" },
+    saved1: { time: "07:00" },
+    saved2: { time: "18:30" },
   },
 };
 
@@ -31,13 +31,8 @@ const notificationButton = document.querySelector("#notificationButton");
 const notificationStatus = document.querySelector("#notificationStatus");
 const currentDateTime = document.querySelector("#currentDateTime");
 const timeMode = document.querySelector("#timeMode");
-const placeForm = document.querySelector("#placeForm");
-const placeType = document.querySelector("#placeType");
-const placeName = document.querySelector("#placeName");
-const placeAddress = document.querySelector("#placeAddress");
+const placeForms = document.querySelectorAll("[data-place-form]");
 const placeList = document.querySelector("#placeList");
-const placeFormStatus = document.querySelector("#placeFormStatus");
-const placeSubmitButton = document.querySelector("#placeSubmitButton");
 const morningAlarm = document.querySelector("#morningAlarm");
 const eveningAlarm = document.querySelector("#eveningAlarm");
 const saved1MorningAlarm = document.querySelector("#saved1MorningAlarm");
@@ -57,8 +52,18 @@ const kakaoMapElement = document.querySelector("#kakaoMap");
 const mapSection = document.querySelector("#mapSection");
 const mapPreview = document.querySelector(".map-preview");
 const tabButtons = document.querySelectorAll(".tab-button");
+const tipCategoryButtons = document.querySelectorAll("[data-tip-category]");
+const tipPanels = document.querySelectorAll("[data-tip-panel]");
+const liveStatsSummary = document.querySelector("#liveStatsSummary");
+const statNearbyStations = document.querySelector("#statNearbyStations");
+const statAvailableBikes = document.querySelector("#statAvailableBikes");
+const statEmptyStations = document.querySelector("#statEmptyStations");
+const statCriticalStations = document.querySelector("#statCriticalStations");
+const statBestStation = document.querySelector("#statBestStation");
+const statBestStationDetail = document.querySelector("#statBestStationDetail");
 const radarPage = document.querySelector("#radarPage");
-const myPage = document.querySelector("#myPage");
+const placesPage = document.querySelector("#placesPage");
+const tipsPage = document.querySelector("#tipsPage");
 const watchCards = {
   current: document.querySelector('[data-watch-card="current"]'),
   saved1: document.querySelector('[data-watch-card="saved-1"]'),
@@ -76,7 +81,6 @@ let kakaoOverlays = [];
 let pullStartY = 0;
 let isPullingToRefresh = false;
 let isRefreshing = false;
-let editingPlaceId = "";
 
 function createId() {
   return window.crypto?.randomUUID ? window.crypto.randomUUID() : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -114,13 +118,20 @@ function loadAlarmSettings() {
       ...parsed,
       targets: { ...DEFAULT_ALARMS.targets, ...parsed.targets },
       placeTimes: {
-        saved1: { ...DEFAULT_ALARMS.placeTimes.saved1, ...parsed.placeTimes?.saved1 },
-        saved2: { ...DEFAULT_ALARMS.placeTimes.saved2, ...parsed.placeTimes?.saved2 },
+        saved1: normalizePlaceTime(parsed.placeTimes?.saved1, DEFAULT_ALARMS.placeTimes.saved1.time),
+        saved2: normalizePlaceTime(parsed.placeTimes?.saved2, DEFAULT_ALARMS.placeTimes.saved2.time),
       },
     };
   } catch {
     return { ...DEFAULT_ALARMS };
   }
+}
+
+function normalizePlaceTime(savedTime, fallback) {
+  return {
+    ...savedTime,
+    time: savedTime?.time || savedTime?.morning || fallback,
+  };
 }
 
 function saveAlarmSettings() {
@@ -390,12 +401,29 @@ function getWatchedPlaces() {
   return [places[0], places[1]];
 }
 
+function getPlaceIcon(type = "") {
+  const icons = {
+    집: "🏠",
+    사무실: "🏢",
+    학교: "🏫",
+    학원: "📚",
+    병원: "🏥",
+    기타: "📍",
+  };
+
+  return icons[type] || "📍";
+}
+
+function getPlaceDisplayName(place) {
+  return `${getPlaceIcon(place.type)} ${place.name}`;
+}
+
 function renderWatchCards(now = new Date()) {
   if (currentPosition) {
-    setWatchCard(watchCards.current, getAreaAlert("현재위치", currentPosition, now));
+    setWatchCard(watchCards.current, getAreaAlert("🏁 현재위치", currentPosition, now));
   } else {
     setWatchCard(watchCards.current, {
-      title: "현재위치 확인 필요",
+      title: "🏁 현재위치 확인 필요",
       detailHTML: "현재 위치 권한을 허용하면 주변 대여소를 자동으로 계산합니다.<br />권한을 거부하면 정확한 주변 대여소를 볼 수 없습니다.",
       label: "대기",
       score: "--",
@@ -411,8 +439,8 @@ function renderWatchCards(now = new Date()) {
 function renderSavedWatchCard(card, place, fallbackName, now) {
   if (!place) {
     setWatchCard(card, {
-      title: `${fallbackName}를 저장하세요`,
-      detailHTML: "마이메뉴에서 자주 가는 장소를 저장하고 레이더에 등록하세요.",
+      title: `📍 ${fallbackName}를 저장하세요`,
+      detailHTML: "내장소저장에서 자주 가는 장소와 알림시간을 저장하세요.",
       label: "대기",
       score: "--",
       className: "waiting",
@@ -422,7 +450,7 @@ function renderSavedWatchCard(card, place, fallbackName, now) {
 
   if (!place.lat || !place.lng) {
     setWatchCard(card, {
-      title: `${place.name} 위치 확인 필요`,
+      title: `${getPlaceDisplayName(place)} 위치 확인 필요`,
       detailHTML: "주소를 다시 저장하면 카카오 주소 검색으로 위치를 확인합니다.",
       label: "대기",
       score: "--",
@@ -431,7 +459,7 @@ function renderSavedWatchCard(card, place, fallbackName, now) {
     return;
   }
 
-  setWatchCard(card, getAreaAlert(place.name, { lat: place.lat, lng: place.lng }, now));
+  setWatchCard(card, getAreaAlert(getPlaceDisplayName(place), { lat: place.lat, lng: place.lng }, now));
 }
 
 function renderDashboard() {
@@ -440,46 +468,15 @@ function renderDashboard() {
   timeMode.textContent = getTimeProfile(now).label;
   renderWatchCards(now);
   renderStations(stations);
+  renderLiveStats(stations);
   renderAlarmSettings();
 }
 
 function renderAlarmSettings() {
-  if (morningAlarm) {
-    morningAlarm.value = alarmSettings.morning;
-  }
-
-  if (eveningAlarm) {
-    eveningAlarm.value = alarmSettings.evening;
-  }
-
-  if (saved1MorningAlarm) {
-    saved1MorningAlarm.value = alarmSettings.placeTimes?.saved1?.morning || DEFAULT_ALARMS.placeTimes.saved1.morning;
-  }
-
-  if (saved1EveningAlarm) {
-    saved1EveningAlarm.value = alarmSettings.placeTimes?.saved1?.evening || DEFAULT_ALARMS.placeTimes.saved1.evening;
-  }
-
-  if (saved2MorningAlarm) {
-    saved2MorningAlarm.value = alarmSettings.placeTimes?.saved2?.morning || DEFAULT_ALARMS.placeTimes.saved2.morning;
-  }
-
-  if (saved2EveningAlarm) {
-    saved2EveningAlarm.value = alarmSettings.placeTimes?.saved2?.evening || DEFAULT_ALARMS.placeTimes.saved2.evening;
-  }
-
-  if (alarmSaved1) {
-    alarmSaved1.checked = alarmSettings.targets?.saved1 !== false;
-  }
-
-  if (alarmSaved2) {
-    alarmSaved2.checked = alarmSettings.targets?.saved2 !== false;
-  }
-
   if (notificationStatus) {
     const enabledText = alarmSettings.enabled ? "켜짐" : "꺼짐";
     const targetText = getAlarmTargetPlaces().map((place) => place.name).join(", ") || "저장 장소 1, 2";
-    notificationStatus.innerHTML = `${targetText} 기준 레이다 알림 ${enabledText}.<br />장소별 알림 시간은 마이메뉴에서 설정합니다.`;
+    notificationStatus.innerHTML = `${targetText} 기준 레이다 알림 ${enabledText}.<br />알림시간은 내장소저장에서 장소별로 설정합니다.`;
   }
 
   if (notificationButton && alarmSettings.enabled) {
@@ -506,60 +503,105 @@ function renderStations(list = stations) {
     .join("");
 }
 
+function renderLiveStats(list = stations) {
+  if (!liveStatsSummary) {
+    return;
+  }
+
+  const nearby = Array.isArray(list) ? list : [];
+  const totalStations = nearby.length;
+  const totalBikes = nearby.reduce((sum, station) => sum + Math.max(0, Number(station.bikes) || 0), 0);
+  const emptyStations = nearby.filter((station) => (Number(station.bikes) || 0) <= 0).length;
+  const criticalStations = nearby.filter((station) => getRisk(station).level === "critical").length;
+  const bestStation = [...nearby].sort((a, b) => {
+    const bikeGap = (Number(b.bikes) || 0) - (Number(a.bikes) || 0);
+    return bikeGap || (Number(a.distanceMeters) || 0) - (Number(b.distanceMeters) || 0);
+  })[0];
+
+  statNearbyStations.textContent = totalStations ? `${totalStations}곳` : "--";
+  statAvailableBikes.textContent = totalStations ? `${totalBikes}대` : "--";
+  statEmptyStations.textContent = totalStations ? `${emptyStations}곳` : "--";
+  statCriticalStations.textContent = totalStations ? `${criticalStations}곳` : "--";
+
+  if (bestStation) {
+    statBestStation.textContent = bestStation.name;
+    statBestStationDetail.textContent = `${bestStation.distance || "거리 계산 중"} · ${formatBikeAvailability(bestStation.bikes)}`;
+    liveStatsSummary.textContent = `현재 지도 기준 주변 ${totalStations}개 대여소를 계산했습니다.`;
+  } else {
+    statBestStation.textContent = "--";
+    statBestStationDetail.textContent = "주변 대여소 계산 중";
+    liveStatsSummary.textContent = "위치와 대여소 정보를 불러오면 실시간 통계를 보여드립니다.";
+  }
+}
+
 function renderPlaces() {
-  placeList.innerHTML = places
-    .map(
-      (place) => `
-        <article class="place-card">
-          <div>
-            <span>${escapeHTML(place.type)}</span>
-            <h3>${escapeHTML(place.name)}</h3>
-            <p>${escapeHTML(place.address)}${place.lat ? " · 위치 저장됨" : ""}</p>
-          </div>
-          <div class="place-actions">
-            <button type="button" data-place-action="edit" data-id="${escapeHTML(place.id)}">수정</button>
-            <button type="button" data-place-action="delete" data-id="${escapeHTML(place.id)}">삭제</button>
-          </div>
-        </article>
-      `,
-    )
-    .join("");
+  placeForms.forEach((form) => {
+    const slotIndex = Number(form.dataset.slotIndex || 0);
+    const slotKey = getPlaceSlotKey(slotIndex);
+    const place = places[slotIndex];
+    const summary = form.querySelector("[data-slot-summary]");
+    const typeInput = form.elements.type;
+    const nameInput = form.elements.name;
+    const addressInput = form.elements.address;
+    const alarmInput = form.elements.alarmTime;
+
+    if (place) {
+      typeInput.value = place.type || "집";
+      nameInput.value = place.name || "";
+      addressInput.value = place.address || "";
+      summary.textContent = `${getPlaceIcon(place.type)} ${place.name} 저장됨`;
+    } else {
+      typeInput.value = slotIndex === 0 ? "집" : "사무실";
+      nameInput.value = "";
+      addressInput.value = "";
+      summary.textContent = slotIndex === 0 ? "첫 번째 장소를 저장하세요" : "두 번째 장소를 저장하세요";
+    }
+
+    alarmInput.value = getPlaceAlarmTime(slotKey);
+  });
+
+  if (placeList) {
+    placeList.innerHTML = [0, 1]
+      .map((index) => {
+        const place = places[index];
+
+        if (!place) {
+          return "";
+        }
+
+        return `
+          <article class="place-card">
+            <div>
+              <span>저장장소 ${index + 1} · ${escapeHTML(place.type)}</span>
+              <h3>${escapeHTML(getPlaceDisplayName(place))}</h3>
+              <p>${escapeHTML(place.address)} · 알림 ${escapeHTML(getPlaceAlarmTime(getPlaceSlotKey(index)))}</p>
+            </div>
+          </article>
+        `;
+      })
+      .join("");
+  }
 
   renderDashboard();
 }
 
-function setPlaceFormStatus(message = "", type = "") {
-  if (!placeFormStatus) {
+function getPlaceSlotKey(slotIndex) {
+  return slotIndex === 0 ? "saved1" : "saved2";
+}
+
+function getPlaceAlarmTime(slotKey) {
+  return alarmSettings.placeTimes?.[slotKey]?.time || alarmSettings.placeTimes?.[slotKey]?.morning || DEFAULT_ALARMS.placeTimes[slotKey].time;
+}
+
+function setSlotStatus(form, message = "", type = "") {
+  const status = form.querySelector("[data-slot-status]");
+
+  if (!status) {
     return;
   }
 
-  placeFormStatus.textContent = message;
-  placeFormStatus.dataset.type = type;
-}
-
-function resetPlaceForm() {
-  editingPlaceId = "";
-  placeForm.reset();
-  placeType.value = "집";
-  setPlaceFormStatus("");
-
-  if (placeSubmitButton) {
-    placeSubmitButton.textContent = "저장";
-  }
-}
-
-function startEditPlace(place) {
-  editingPlaceId = place.id;
-  placeType.value = place.type || "집";
-  placeName.value = place.name || "";
-  placeAddress.value = place.address || "";
-
-  if (placeSubmitButton) {
-    placeSubmitButton.textContent = "수정 저장";
-  }
-
-  setPlaceFormStatus("주소를 바꾼 뒤 수정 저장을 누르면 기존 장소가 업데이트됩니다.", "info");
-  placeName.focus();
+  status.textContent = message;
+  status.dataset.type = type;
 }
 
 function showRadarNotification(body) {
@@ -752,8 +794,9 @@ async function focusWatchCard(cardKey) {
   const place = await ensurePlaceCoords(cardKey === "saved1" ? firstPlace : secondPlace);
 
   if (!place || !place.lat || !place.lng) {
-    switchTab("my");
-    placeName.focus();
+    switchTab("places");
+    const targetForm = placeForms[cardKey === "saved1" ? 0 : 1];
+    targetForm?.elements.name?.focus();
     return;
   }
 
@@ -763,7 +806,13 @@ async function focusWatchCard(cardKey) {
 function switchTab(tabName) {
   tabButtons.forEach((button) => button.classList.toggle("active", button.dataset.tab === tabName));
   radarPage.classList.toggle("active", tabName === "radar");
-  myPage.classList.toggle("active", tabName === "my");
+  placesPage.classList.toggle("active", tabName === "places");
+  tipsPage.classList.toggle("active", tabName === "tips");
+}
+
+function switchTipCategory(category) {
+  tipCategoryButtons.forEach((button) => button.classList.toggle("active", button.dataset.tipCategory === category));
+  tipPanels.forEach((panel) => panel.classList.toggle("active", panel.dataset.tipPanel === category));
 }
 
 function registerServiceWorker() {
@@ -905,7 +954,7 @@ Object.entries(watchCards).forEach(([cardKey, card]) => {
   });
 });
 
-saveAlarmButton.addEventListener("click", async () => {
+saveAlarmButton?.addEventListener("click", async () => {
   let enabled = alarmSettings.enabled;
 
   if ("Notification" in window) {
@@ -916,22 +965,6 @@ saveAlarmButton.addEventListener("click", async () => {
   alarmSettings = {
     ...alarmSettings,
     enabled,
-    morning: saved1MorningAlarm?.value || morningAlarm?.value || DEFAULT_ALARMS.morning,
-    evening: saved1EveningAlarm?.value || eveningAlarm?.value || DEFAULT_ALARMS.evening,
-    targets: {
-      saved1: alarmSaved1?.checked ?? true,
-      saved2: alarmSaved2?.checked ?? true,
-    },
-    placeTimes: {
-      saved1: {
-        morning: saved1MorningAlarm?.value || DEFAULT_ALARMS.placeTimes.saved1.morning,
-        evening: saved1EveningAlarm?.value || DEFAULT_ALARMS.placeTimes.saved1.evening,
-      },
-      saved2: {
-        morning: saved2MorningAlarm?.value || DEFAULT_ALARMS.placeTimes.saved2.morning,
-        evening: saved2EveningAlarm?.value || DEFAULT_ALARMS.placeTimes.saved2.evening,
-      },
-    },
   };
   saveAlarmSettings();
   renderAlarmSettings();
@@ -953,21 +986,9 @@ notificationButton.addEventListener("click", async () => {
   alarmSettings = {
     ...alarmSettings,
     enabled: true,
-    morning: saved1MorningAlarm?.value || morningAlarm?.value || alarmSettings.morning,
-    evening: saved1EveningAlarm?.value || eveningAlarm?.value || alarmSettings.evening,
     targets: {
-      saved1: alarmSaved1?.checked ?? true,
-      saved2: alarmSaved2?.checked ?? true,
-    },
-    placeTimes: {
-      saved1: {
-        morning: saved1MorningAlarm?.value || alarmSettings.placeTimes?.saved1?.morning || DEFAULT_ALARMS.placeTimes.saved1.morning,
-        evening: saved1EveningAlarm?.value || alarmSettings.placeTimes?.saved1?.evening || DEFAULT_ALARMS.placeTimes.saved1.evening,
-      },
-      saved2: {
-        morning: saved2MorningAlarm?.value || alarmSettings.placeTimes?.saved2?.morning || DEFAULT_ALARMS.placeTimes.saved2.morning,
-        evening: saved2EveningAlarm?.value || alarmSettings.placeTimes?.saved2?.evening || DEFAULT_ALARMS.placeTimes.saved2.evening,
-      },
+      saved1: true,
+      saved2: true,
     },
   };
   saveAlarmSettings();
@@ -1036,8 +1057,8 @@ function checkScheduledNotification() {
     { place: firstPlace, key: "saved1" },
     { place: secondPlace, key: "saved2" },
   ].filter(({ place, key }) => {
-    const times = alarmSettings.placeTimes?.[key] || DEFAULT_ALARMS.placeTimes[key];
-    return place && [times.morning, times.evening].includes(currentTime);
+    const alarmTime = getPlaceAlarmTime(key);
+    return place && alarmTime === currentTime;
   });
 
   if (!duePlaces.length) {
@@ -1059,41 +1080,48 @@ function checkScheduledNotification() {
   showRadarNotification(alertTexts.join(" / "));
 }
 
-placeForm.addEventListener("submit", async (event) => {
+placeForms.forEach((form) => {
+  form.addEventListener("submit", async (event) => savePlaceSlot(event, form));
+});
+
+async function savePlaceSlot(event, form) {
   event.preventDefault();
 
-  const address = placeAddress.value.trim();
-  const name = placeName.value.trim();
-  const editingPlace = places.find((place) => place.id === editingPlaceId);
+  const slotIndex = Number(form.dataset.slotIndex || 0);
+  const slotKey = getPlaceSlotKey(slotIndex);
+  const address = form.elements.address.value.trim();
+  const name = form.elements.name.value.trim();
+  const editingPlace = places[slotIndex];
   const canReuseCoords =
     editingPlace &&
     editingPlace.address === address &&
     Number.isFinite(Number(editingPlace.lat)) &&
     Number.isFinite(Number(editingPlace.lng));
+  const submitButton = form.querySelector('button[type="submit"]');
 
-  setPlaceFormStatus("주소를 확인하는 중입니다.", "info");
-  if (placeSubmitButton) {
-    placeSubmitButton.disabled = true;
+  setSlotStatus(form, "주소를 확인하는 중입니다.", "info");
+  if (submitButton) {
+    submitButton.disabled = true;
   }
 
   const coords = canReuseCoords ? { lat: Number(editingPlace.lat), lng: Number(editingPlace.lng) } : await geocodePlace(address);
 
-  if (placeSubmitButton) {
-    placeSubmitButton.disabled = false;
+  if (submitButton) {
+    submitButton.disabled = false;
   }
 
   if (!coords) {
     const message = window.kakao?.maps?.services
       ? "주소를 찾지 못했어요. 도로명, 건물명, 지번을 조금 더 정확히 입력해주세요."
       : "주소검색 연결이 막혔어요. 로컬 127.0.0.1 대신 배포 주소나 localhost에서 다시 확인해주세요.";
-    setPlaceFormStatus(message, "error");
-    placeAddress.focus();
+    setSlotStatus(form, message, "error");
+    form.elements.address.focus();
     return;
   }
 
   const nextPlace = {
-    id: editingPlaceId || createId(),
-    type: placeType.value,
+    id: editingPlace?.id || createId(),
+    type: form.elements.type.value,
     name,
     address,
     lat: coords.lat,
@@ -1101,21 +1129,30 @@ placeForm.addEventListener("submit", async (event) => {
     role: "",
   };
 
-  const wasEditing = Boolean(editingPlaceId);
+  places[slotIndex] = nextPlace;
+  places = places.slice(0, 2);
+  alarmSettings = {
+    ...alarmSettings,
+    enabled: alarmSettings.enabled,
+    targets: { ...alarmSettings.targets, [slotKey]: true },
+    placeTimes: {
+      ...alarmSettings.placeTimes,
+      [slotKey]: { ...alarmSettings.placeTimes?.[slotKey], time: form.elements.alarmTime.value },
+    },
+  };
 
-  if (wasEditing) {
-    places = places.map((place) => (place.id === editingPlaceId ? { ...place, ...nextPlace, role: place.role || "" } : place));
-  } else {
-    places = [...places, nextPlace].slice(-2);
+  if ("Notification" in window) {
+    const permission = await Notification.requestPermission();
+    alarmSettings.enabled = permission === "granted" || alarmSettings.enabled;
   }
 
   savePlaces();
+  saveAlarmSettings();
   renderPlaces();
-  resetPlaceForm();
-  setPlaceFormStatus(wasEditing ? "장소를 수정했습니다." : "장소를 저장했습니다.", "success");
-});
+  setSlotStatus(form, "장소와 알림시간을 저장했습니다.", "success");
+}
 
-placeList.addEventListener("click", (event) => {
+placeList?.addEventListener("click", (event) => {
   const button = event.target.closest("button");
 
   if (!button) {
@@ -1126,18 +1163,10 @@ placeList.addEventListener("click", (event) => {
   const id = button.dataset.id;
   const place = places.find((item) => item.id === id);
 
-  if (action === "edit" && place) {
-    startEditPlace(place);
-    placeForm.scrollIntoView({ behavior: "smooth", block: "start" });
-    return;
-  }
-
   if (action === "delete") {
     places = places.filter((item) => item.id !== id);
     savePlaces();
     renderPlaces();
-    resetPlaceForm();
-    setPlaceFormStatus("장소를 삭제했습니다.", "success");
     return;
   }
 
@@ -1170,7 +1199,11 @@ tabButtons.forEach((button) => {
   button.addEventListener("click", () => switchTab(button.dataset.tab));
 });
 
-openMyButton.addEventListener("click", () => switchTab("my"));
+tipCategoryButtons.forEach((button) => {
+  button.addEventListener("click", () => switchTipCategory(button.dataset.tipCategory));
+});
+
+openMyButton?.addEventListener("click", () => switchTab("places"));
 
 renderPlaces();
 renderDashboard();
