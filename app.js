@@ -8,6 +8,10 @@ const DEFAULT_ALARMS = {
   evening: "18:30",
   enabled: false,
   targets: { saved1: true, saved2: true },
+  placeTimes: {
+    saved1: { morning: "07:00", evening: "18:30" },
+    saved2: { morning: "08:00", evening: "19:00" },
+  },
 };
 
 const fallbackStations = [
@@ -34,6 +38,10 @@ const placeAddress = document.querySelector("#placeAddress");
 const placeList = document.querySelector("#placeList");
 const morningAlarm = document.querySelector("#morningAlarm");
 const eveningAlarm = document.querySelector("#eveningAlarm");
+const saved1MorningAlarm = document.querySelector("#saved1MorningAlarm");
+const saved1EveningAlarm = document.querySelector("#saved1EveningAlarm");
+const saved2MorningAlarm = document.querySelector("#saved2MorningAlarm");
+const saved2EveningAlarm = document.querySelector("#saved2EveningAlarm");
 const alarmSaved1 = document.querySelector("#alarmSaved1");
 const alarmSaved2 = document.querySelector("#alarmSaved2");
 const saveAlarmButton = document.querySelector("#saveAlarmButton");
@@ -45,6 +53,7 @@ const locationStatus = document.querySelector("#locationStatus");
 const mapTitle = document.querySelector("#mapTitle");
 const kakaoMapElement = document.querySelector("#kakaoMap");
 const mapSection = document.querySelector("#mapSection");
+const mapPreview = document.querySelector(".map-preview");
 const tabButtons = document.querySelectorAll(".tab-button");
 const radarPage = document.querySelector("#radarPage");
 const myPage = document.querySelector("#myPage");
@@ -101,6 +110,10 @@ function loadAlarmSettings() {
       ...DEFAULT_ALARMS,
       ...parsed,
       targets: { ...DEFAULT_ALARMS.targets, ...parsed.targets },
+      placeTimes: {
+        saved1: { ...DEFAULT_ALARMS.placeTimes.saved1, ...parsed.placeTimes?.saved1 },
+        saved2: { ...DEFAULT_ALARMS.placeTimes.saved2, ...parsed.placeTimes?.saved2 },
+      },
     };
   } catch {
     return { ...DEFAULT_ALARMS };
@@ -436,6 +449,22 @@ function renderAlarmSettings() {
     eveningAlarm.value = alarmSettings.evening;
   }
 
+  if (saved1MorningAlarm) {
+    saved1MorningAlarm.value = alarmSettings.placeTimes?.saved1?.morning || DEFAULT_ALARMS.placeTimes.saved1.morning;
+  }
+
+  if (saved1EveningAlarm) {
+    saved1EveningAlarm.value = alarmSettings.placeTimes?.saved1?.evening || DEFAULT_ALARMS.placeTimes.saved1.evening;
+  }
+
+  if (saved2MorningAlarm) {
+    saved2MorningAlarm.value = alarmSettings.placeTimes?.saved2?.morning || DEFAULT_ALARMS.placeTimes.saved2.morning;
+  }
+
+  if (saved2EveningAlarm) {
+    saved2EveningAlarm.value = alarmSettings.placeTimes?.saved2?.evening || DEFAULT_ALARMS.placeTimes.saved2.evening;
+  }
+
   if (alarmSaved1) {
     alarmSaved1.checked = alarmSettings.targets?.saved1 !== false;
   }
@@ -447,7 +476,7 @@ function renderAlarmSettings() {
   if (notificationStatus) {
     const enabledText = alarmSettings.enabled ? "켜짐" : "꺼짐";
     const targetText = getAlarmTargetPlaces().map((place) => place.name).join(", ") || "저장 장소 1, 2";
-    notificationStatus.innerHTML = `${targetText} 기준 레이다 알림 ${enabledText}.<br />알림시간은 오전 ${alarmSettings.morning},<br />저녁 ${alarmSettings.evening} 입니다.`;
+    notificationStatus.innerHTML = `${targetText} 기준 레이다 알림 ${enabledText}.<br />장소별 알림 시간은 마이메뉴에서 설정합니다.`;
   }
 
   if (notificationButton && alarmSettings.enabled) {
@@ -606,7 +635,7 @@ function focusStation(stationId) {
   renderStations(stations);
   renderKakaoOverlays(stations);
   moveKakaoMap(station.lat, station.lng);
-  mapSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  (mapPreview || mapSection).scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function focusArea(areaName, center) {
@@ -617,7 +646,7 @@ function focusArea(areaName, center) {
   renderStations(stations);
   renderKakaoOverlays(stations);
   moveKakaoMap(center.lat, center.lng);
-  mapSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  (mapPreview || mapSection).scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 async function ensurePlaceCoords(place) {
@@ -650,7 +679,7 @@ async function focusWatchCard(cardKey) {
   }
 
   const [firstPlace, secondPlace] = getWatchedPlaces();
-  const place = await ensurePlaceCoords(cardKey === "saved-1" ? firstPlace : secondPlace);
+  const place = await ensurePlaceCoords(cardKey === "saved1" ? firstPlace : secondPlace);
 
   if (!place || !place.lat || !place.lng) {
     switchTab("my");
@@ -817,11 +846,21 @@ saveAlarmButton.addEventListener("click", async () => {
   alarmSettings = {
     ...alarmSettings,
     enabled,
-    morning: morningAlarm.value || DEFAULT_ALARMS.morning,
-    evening: eveningAlarm.value || DEFAULT_ALARMS.evening,
+    morning: saved1MorningAlarm?.value || morningAlarm?.value || DEFAULT_ALARMS.morning,
+    evening: saved1EveningAlarm?.value || eveningAlarm?.value || DEFAULT_ALARMS.evening,
     targets: {
       saved1: alarmSaved1?.checked ?? true,
       saved2: alarmSaved2?.checked ?? true,
+    },
+    placeTimes: {
+      saved1: {
+        morning: saved1MorningAlarm?.value || DEFAULT_ALARMS.placeTimes.saved1.morning,
+        evening: saved1EveningAlarm?.value || DEFAULT_ALARMS.placeTimes.saved1.evening,
+      },
+      saved2: {
+        morning: saved2MorningAlarm?.value || DEFAULT_ALARMS.placeTimes.saved2.morning,
+        evening: saved2EveningAlarm?.value || DEFAULT_ALARMS.placeTimes.saved2.evening,
+      },
     },
   };
   saveAlarmSettings();
@@ -844,11 +883,21 @@ notificationButton.addEventListener("click", async () => {
   alarmSettings = {
     ...alarmSettings,
     enabled: true,
-    morning: morningAlarm?.value || alarmSettings.morning,
-    evening: eveningAlarm?.value || alarmSettings.evening,
+    morning: saved1MorningAlarm?.value || morningAlarm?.value || alarmSettings.morning,
+    evening: saved1EveningAlarm?.value || eveningAlarm?.value || alarmSettings.evening,
     targets: {
       saved1: alarmSaved1?.checked ?? true,
       saved2: alarmSaved2?.checked ?? true,
+    },
+    placeTimes: {
+      saved1: {
+        morning: saved1MorningAlarm?.value || alarmSettings.placeTimes?.saved1?.morning || DEFAULT_ALARMS.placeTimes.saved1.morning,
+        evening: saved1EveningAlarm?.value || alarmSettings.placeTimes?.saved1?.evening || DEFAULT_ALARMS.placeTimes.saved1.evening,
+      },
+      saved2: {
+        morning: saved2MorningAlarm?.value || alarmSettings.placeTimes?.saved2?.morning || DEFAULT_ALARMS.placeTimes.saved2.morning,
+        evening: saved2EveningAlarm?.value || alarmSettings.placeTimes?.saved2?.evening || DEFAULT_ALARMS.placeTimes.saved2.evening,
+      },
     },
   };
   saveAlarmSettings();
@@ -915,23 +964,33 @@ function checkScheduledNotification() {
 
   const now = new Date();
   const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-  const alarmTimes = [alarmSettings.morning, alarmSettings.evening];
+  const [firstPlace, secondPlace] = getWatchedPlaces();
+  const duePlaces = [
+    { place: firstPlace, key: "saved1" },
+    { place: secondPlace, key: "saved2" },
+  ].filter(({ place, key }) => {
+    const times = alarmSettings.placeTimes?.[key] || DEFAULT_ALARMS.placeTimes[key];
+    return place && [times.morning, times.evening].includes(currentTime);
+  });
 
-  if (!alarmTimes.includes(currentTime)) {
+  if (!duePlaces.length) {
     return;
   }
 
-  const sentKey = `${now.toISOString().slice(0, 10)}-${currentTime}`;
+  const sentKey = `${now.toISOString().slice(0, 10)}-${currentTime}-${duePlaces.map(({ key }) => key).join("-")}`;
 
   if (window.localStorage.getItem(alarmSentStorageKey) === sentKey) {
     return;
   }
 
-  const alert = getAlarmNotificationAlert();
+  const alertTexts = duePlaces.map(({ place }) => {
+    const alert = getPlaceNotificationAlert(place);
+    return `${alert.title}. ${alert.text}`;
+  });
   window.localStorage.setItem(alarmSentStorageKey, sentKey);
 
   new Notification("따릉이 레이더", {
-    body: `${alert.title}. ${alert.text}`,
+    body: alertTexts.join(" / "),
     icon: "./icons/icon-192.svg",
   });
 }

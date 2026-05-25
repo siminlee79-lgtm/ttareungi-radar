@@ -1,3 +1,5 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+
 :root {
   color-scheme: light;
   --bg: #f6fbf8;
@@ -29,6 +31,7 @@ body {
     var(--bg);
   color: var(--text);
   font-family:
+    "Pretendard",
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
@@ -119,6 +122,19 @@ h1 {
   margin-top: 4px;
   font-size: 28px;
   line-height: 1.1;
+}
+
+.intro-card {
+  margin-bottom: 12px;
+  padding: 13px 14px;
+  border: 1px solid rgba(39, 216, 132, 0.28);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.45;
+  box-shadow: 0 10px 26px rgba(37, 55, 68, 0.08);
 }
 
 .icon-button {
@@ -595,6 +611,59 @@ h1 {
   margin-top: 12px;
 }
 
+.place-alarm-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.place-alarm-card {
+  display: grid;
+  grid-template-columns: 1fr 108px 108px;
+  gap: 8px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.place-alarm-card strong,
+.place-alarm-card span {
+  display: block;
+}
+
+.place-alarm-card strong {
+  font-size: 14px;
+}
+
+.place-alarm-card span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.place-alarm-card label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.place-alarm-card input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-strong);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 900;
+  text-align: center;
+}
+
 .alarm-targets {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -902,5 +971,11 @@ h1 {
 @media (min-width: 760px) {
   .app-shell {
     padding-top: 32px;
+  }
+}
+
+@media (max-width: 420px) {
+  .place-alarm-card {
+    grid-template-columns: 1fr;
   }
 }
