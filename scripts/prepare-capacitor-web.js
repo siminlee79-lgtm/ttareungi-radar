@@ -53,7 +53,14 @@ for (const directory of directories) {
 
 fs.writeFileSync(
   path.join(outputDir, "config.local.js"),
-  "window.TTAREUNGI_CONFIG = window.TTAREUNGI_CONFIG || {};\n",
+  [
+    "window.TTAREUNGI_CONFIG = {",
+    "  ...(window.TTAREUNGI_CONFIG || {}),",
+    "  IS_NATIVE_APP: true,",
+    '  API_BASE_URL: "https://ttareungi-radar.pages.dev",',
+    "};",
+    "",
+  ].join("\n"),
   "utf8",
 );
 
