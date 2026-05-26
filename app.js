@@ -2,6 +2,8 @@ const LOCAL_SEOUL_OPEN_API_KEY = window.TTAREUNGI_CONFIG?.SEOUL_OPEN_API_KEY || 
 const SEOUL_BIKE_API = LOCAL_SEOUL_OPEN_API_KEY
   ? `http://openapi.seoul.go.kr:8088/${LOCAL_SEOUL_OPEN_API_KEY}/json/bikeList`
   : "";
+const REMOTE_API_BASE_URL = window.TTAREUNGI_CONFIG?.API_BASE_URL || "https://ttareungi-radar.pages.dev";
+const IS_NATIVE_APP = window.location.protocol === "capacitor:" || window.location.protocol === "ionic:";
 const DEFAULT_CENTER = { lat: 37.5665, lng: 126.978 };
 const LOCATION_FALLBACK_MESSAGE =
   "지하철이나 실내에서는 현재위치 확인이 어려울 수 있어요.<br />저장한 장소 기준으로 따릉이 상황을 확인해보세요.";
@@ -196,6 +198,17 @@ async function fetchSeoulBikeStations() {
 
 async function fetchBikeRows() {
   const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+
+  if (IS_NATIVE_APP) {
+    const response = await fetch(`${REMOTE_API_BASE_URL}/api/bikes`);
+
+    if (!response.ok) {
+      throw new Error(`Native API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.rows || [];
+  }
 
   if (!isLocal) {
     const response = await fetch("/api/bikes");
@@ -894,7 +907,7 @@ function switchTipCategory(category) {
 }
 
 function registerServiceWorker() {
-  if ("serviceWorker" in navigator) {
+  if ("serviceWorker" in navigator && ["http:", "https:"].includes(window.location.protocol)) {
     navigator.serviceWorker.register("./service-worker.js");
   }
 }

@@ -1,0 +1,16 @@
+{
+  "name": "ttareungi-radar",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Saved-place bike availability radar prototype for Seoul public bike users.",
+  "scripts": {
+    "app:prepare": "node scripts/prepare-capacitor-web.js",
+    "cap:sync": "npm run app:prepare && npx cap sync",
+    "cap:open:android": "npx cap open android",
+    "check": "node --check app.js && node --check service-worker.js && node --check scripts/build-station-stats.js && node --check scripts/fetch-latest-daily-usage.js && node --check scripts/prepare-capacitor-web.js"
+  },
+  "dependencies": {
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4"
+  }
+}

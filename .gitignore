@@ -1,6 +1,7 @@
 .DS_Store
 Thumbs.db
 node_modules/
+www/
 .wrangler/
 .dev.vars
 config.local.js

@@ -1,3 +1,15 @@
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+export async function onRequestOptions() {
+  return new Response(null, {
+    headers: corsHeaders,
+  });
+}
+
 export async function onRequestGet(context) {
   const seoulOpenApiKey = context.env.SEOUL_OPEN_API_KEY;
 
@@ -6,7 +18,7 @@ export async function onRequestGet(context) {
       {
         error: "Missing SEOUL_OPEN_API_KEY",
       },
-      { status: 500 },
+      { status: 500, headers: corsHeaders },
     );
   }
 
@@ -37,6 +49,7 @@ export async function onRequestGet(context) {
       { rows },
       {
         headers: {
+          ...corsHeaders,
           "Cache-Control": "public, max-age=30",
         },
       },
@@ -47,7 +60,7 @@ export async function onRequestGet(context) {
         error: "Failed to load Seoul bike data",
         message: error.message,
       },
-      { status: 502 },
+      { status: 502, headers: corsHeaders },
     );
   }
 }
