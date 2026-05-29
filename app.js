@@ -694,6 +694,17 @@ function setSlotStatus(form, message = "", type = "") {
   status.dataset.type = type;
 }
 
+function setAddressFieldError(form, hasError) {
+  const addressInput = form.elements.address;
+
+  if (!addressInput) {
+    return;
+  }
+
+  addressInput.classList.toggle("field-error", hasError);
+  addressInput.setAttribute("aria-invalid", hasError ? "true" : "false");
+}
+
 function showRadarNotification(body) {
   const notification = new Notification("따릉이 레이더", {
     body,
@@ -1218,6 +1229,10 @@ function checkScheduledNotification() {
 
 placeForms.forEach((form) => {
   form.addEventListener("submit", async (event) => savePlaceSlot(event, form));
+  form.elements.address?.addEventListener("input", () => {
+    setAddressFieldError(form, false);
+    setSlotStatus(form);
+  });
 });
 
 async function savePlaceSlot(event, form) {
@@ -1235,6 +1250,7 @@ async function savePlaceSlot(event, form) {
     Number.isFinite(Number(editingPlace.lng));
   const submitButton = form.querySelector('button[type="submit"]');
 
+  setAddressFieldError(form, false);
   setSlotStatus(form, "주소를 확인하는 중입니다.", "info");
   if (submitButton) {
     submitButton.disabled = true;
@@ -1248,9 +1264,10 @@ async function savePlaceSlot(event, form) {
 
   if (!coords) {
     const message = window.kakao?.maps?.services
-      ? "주소를 찾지 못했어요. 도로명, 건물명, 지번을 조금 더 정확히 입력해주세요."
+      ? "주소를 찾지 못했어요. 도로명주소나 지번주소로 다시 입력해 주세요. 예: 서울 강서구 등촌로 163"
       : "주소검색 연결이 막혔어요. 로컬 127.0.0.1 대신 배포 주소나 localhost에서 다시 확인해주세요.";
     setSlotStatus(form, message, "error");
+    setAddressFieldError(form, true);
     form.elements.address.focus();
     return;
   }
@@ -1285,6 +1302,7 @@ async function savePlaceSlot(event, form) {
   savePlaces();
   saveAlarmSettings();
   renderPlaces();
+  setAddressFieldError(form, false);
   setSlotStatus(form, "장소와 알림시간을 저장했습니다.", "success");
 }
 

@@ -821,6 +821,12 @@ h1 {
   font-weight: 800;
 }
 
+.place-form input.field-error {
+  border-color: #c24136;
+  background: #fff6f4;
+  box-shadow: 0 0 0 3px rgba(194, 65, 54, 0.12);
+}
+
 .place-form button {
   min-height: 50px;
 }
