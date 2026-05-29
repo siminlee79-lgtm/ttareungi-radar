@@ -1,4 +1,4 @@
-const CACHE_NAME = "ttareungi-radar-v35";
+const CACHE_NAME = "ttareungi-radar-v36";
 const APP_SHELL = "./";
 const APP_ASSETS = [
   APP_SHELL,

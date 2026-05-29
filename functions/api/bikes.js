@@ -25,25 +25,7 @@ export async function onRequestGet(context) {
   const seoulBikeApi = `http://openapi.seoul.go.kr:8088/${seoulOpenApiKey}/json/bikeList`;
 
   try {
-    const ranges = [
-      [1, 1000],
-      [1001, 2000],
-      [2001, 3000],
-    ];
-
-    const responses = await Promise.all(
-      ranges.map(async ([start, end]) => {
-        const response = await fetch(`${seoulBikeApi}/${start}/${end}/`);
-
-        if (!response.ok) {
-          throw new Error(`Seoul API error: ${response.status}`);
-        }
-
-        return response.json();
-      }),
-    );
-
-    const rows = responses.flatMap((data) => data.rentBikeStatus?.row || []);
+    const rows = await fetchAllBikeRows(seoulBikeApi);
 
     return Response.json(
       { rows },
@@ -63,4 +45,33 @@ export async function onRequestGet(context) {
       { status: 502, headers: corsHeaders },
     );
   }
+}
+
+async function fetchBikePage(baseUrl, start, end) {
+  const response = await fetch(`${baseUrl}/${start}/${end}/`);
+
+  if (!response.ok) {
+    throw new Error(`Seoul API error: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+async function fetchAllBikeRows(baseUrl) {
+  const pageSize = 1000;
+  const firstPage = await fetchBikePage(baseUrl, 1, pageSize);
+  const firstRows = firstPage.rentBikeStatus?.row || [];
+  const totalCount = Number(firstPage.rentBikeStatus?.list_total_count) || firstRows.length;
+
+  if (totalCount <= pageSize) {
+    return firstRows;
+  }
+
+  const ranges = [];
+  for (let start = pageSize + 1; start <= totalCount; start += pageSize) {
+    ranges.push([start, Math.min(start + pageSize - 1, totalCount)]);
+  }
+
+  const restPages = await Promise.all(ranges.map(([start, end]) => fetchBikePage(baseUrl, start, end)));
+  return firstRows.concat(restPages.flatMap((data) => data.rentBikeStatus?.row || []));
 }

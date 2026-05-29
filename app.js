@@ -404,7 +404,7 @@ function getAreaAlert(areaName, center, now = new Date()) {
 
   return {
     title: areaName,
-    detailHTML: "좋아요. 주변 대여소 수급이 안정적입니다.<br />지금은 따릉이 타기 좋은 타이밍이에요.",
+    detailHTML: `${escapeHTML(primary.name)} ${formatBikeAvailability(primary.bikes)}.<br />주변 대여소 수급이 안정적입니다.`,
     label: "여유",
     score: primary.risk.score,
     className: "safe",
@@ -745,7 +745,7 @@ function geocodePlace(address) {
   });
 }
 
-function requestCurrentLocation() {
+function requestCurrentLocation(options = {}) {
   if (!("geolocation" in navigator)) {
     locationFailed = true;
     locationStatus.textContent = getPlainLocationFallbackMessage();
@@ -778,6 +778,45 @@ function requestCurrentLocation() {
     },
     { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 },
   );
+}
+
+function requestFreshCurrentLocation() {
+  if (!("geolocation" in navigator)) {
+    locationFailed = true;
+    locationStatus.textContent = getPlainLocationFallbackMessage();
+    renderDashboard();
+    return Promise.resolve(false);
+  }
+
+  locationFailed = false;
+  locationStatus.textContent = "현재 위치를 다시 확인하는 중입니다.";
+
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        currentPosition = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        locationFailed = false;
+
+        mapTitle.textContent = "현재위치 주변 대여소";
+        locationStatus.textContent = `현재위치 확인 완료: ${currentPosition.lat.toFixed(4)}, ${currentPosition.lng.toFixed(4)}`;
+        moveKakaoMap(currentPosition.lat, currentPosition.lng);
+        updateNearbyStations(currentPosition);
+        resolve(true);
+      },
+      (error) => {
+        currentPosition = null;
+        locationFailed = true;
+        console.warn("현재위치 확인 실패", error);
+        locationStatus.textContent = getPlainLocationFallbackMessage();
+        renderDashboard();
+        resolve(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    );
+  });
 }
 
 function initKakaoMap() {
@@ -929,6 +968,7 @@ async function refreshRadar() {
     pullRefreshHint.textContent = "새로고침 중";
   }
 
+  await requestFreshCurrentLocation();
   await fetchSeoulBikeStations();
   refreshButton.animate([{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }], {
     duration: 450,
