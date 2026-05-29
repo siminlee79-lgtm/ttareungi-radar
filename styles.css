@@ -474,6 +474,44 @@ h1 {
   opacity: 1;
 }
 
+.map-state {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 4;
+  display: grid;
+  gap: 5px;
+  width: min(78%, 320px);
+  padding: 14px 16px;
+  border: 1px solid rgba(18, 91, 74, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text);
+  text-align: center;
+  box-shadow: var(--shadow);
+  transform: translate(-50%, -50%);
+}
+
+.map-state[hidden] {
+  display: none;
+}
+
+.map-state strong {
+  font-size: 15px;
+}
+
+.map-state span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.map-state[data-type="error"] {
+  border-color: rgba(194, 65, 54, 0.2);
+  background: rgba(255, 246, 244, 0.94);
+}
+
 .user-marker {
   position: absolute;
   left: 50%;

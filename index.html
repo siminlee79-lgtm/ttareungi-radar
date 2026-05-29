@@ -10,7 +10,7 @@
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg" />
     <link rel="apple-touch-icon" href="./icons/icon-192.svg" />
-    <link rel="stylesheet" href="./styles.css?v=37" />
+    <link rel="stylesheet" href="./styles.css?v=38" />
   </head>
   <body>
     <div class="pull-refresh-hint" id="pullRefreshHint">놓으면 새로고침</div>
@@ -110,6 +110,10 @@
 
         <section class="map-preview" aria-label="현재 위치 주변 대여소 지도">
           <div id="kakaoMap" class="kakao-map" aria-hidden="true"></div>
+          <div class="map-state" id="mapState" role="status" aria-live="polite">
+            <strong>지도를 불러오는 중입니다</strong>
+            <span>위치와 대여소 정보를 확인하고 있어요.</span>
+          </div>
           <div class="map-grid"></div>
           <div class="user-marker" aria-label="현재 위치"></div>
           <div class="station-marker danger" style="left: 24%; top: 38%">1</div>
@@ -424,6 +428,6 @@
 
     <script src="./config.local.js"></script>
     <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=34bb6af6aca7523a764d2047e36d5be4&libraries=services"></script>
-    <script src="./app.js?v=37"></script>
+    <script src="./app.js?v=38"></script>
   </body>
 </html>

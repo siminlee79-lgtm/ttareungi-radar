@@ -59,6 +59,7 @@ const installGuideClose = document.querySelector("#installGuideClose");
 const locationStatus = document.querySelector("#locationStatus");
 const mapTitle = document.querySelector("#mapTitle");
 const kakaoMapElement = document.querySelector("#kakaoMap");
+const mapState = document.querySelector("#mapState");
 const mapSection = document.querySelector("#mapSection");
 const mapPreview = document.querySelector(".map-preview");
 const tabButtons = document.querySelectorAll(".tab-button");
@@ -92,6 +93,7 @@ let stations = [];
 let highlightedStationId = "";
 let kakaoMap = null;
 let kakaoOverlays = [];
+let kakaoMapLoaded = false;
 let pullStartY = 0;
 let isPullingToRefresh = false;
 let isRefreshing = false;
@@ -705,6 +707,24 @@ function setAddressFieldError(form, hasError) {
   addressInput.setAttribute("aria-invalid", hasError ? "true" : "false");
 }
 
+function setMapState(title, detail = "", type = "loading") {
+  if (!mapState) {
+    return;
+  }
+
+  mapState.hidden = false;
+  mapState.dataset.type = type;
+  mapState.innerHTML = `<strong>${escapeHTML(title)}</strong>${detail ? `<span>${escapeHTML(detail)}</span>` : ""}`;
+}
+
+function hideMapState() {
+  if (!mapState) {
+    return;
+  }
+
+  mapState.hidden = true;
+}
+
 function showRadarNotification(body) {
   const notification = new Notification("따릉이 레이더", {
     body,
@@ -833,16 +853,30 @@ function requestFreshCurrentLocation() {
 function initKakaoMap() {
   if (!window.kakao?.maps || !kakaoMapElement) {
     locationStatus.textContent = "카카오맵 도메인 등록이 필요합니다. JavaScript SDK 도메인을 확인하세요.";
+    setMapState("지도를 불러오지 못했어요", "카카오맵 도메인 등록이나 네트워크 상태를 확인해 주세요.", "error");
     return;
   }
 
+  setMapState("지도를 불러오는 중입니다", "주변 대여소를 지도에 표시하고 있어요.");
   const center = new kakao.maps.LatLng(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng);
   kakaoMap = new kakao.maps.Map(kakaoMapElement, {
     center,
     level: 5,
   });
 
-  kakaoMapElement.classList.add("loaded");
+  kakaoMapLoaded = false;
+  kakao.maps.event.addListener(kakaoMap, "tilesloaded", () => {
+    kakaoMapLoaded = true;
+    kakaoMapElement.classList.add("loaded");
+    hideMapState();
+  });
+
+  setTimeout(() => {
+    if (!kakaoMapLoaded) {
+      setMapState("지도를 불러오는 중입니다", "네트워크 상태에 따라 조금 더 걸릴 수 있어요.");
+    }
+  }, 4500);
+
   renderKakaoOverlays(stations.length ? stations : getNearbyStations(DEFAULT_CENTER));
 }
 
