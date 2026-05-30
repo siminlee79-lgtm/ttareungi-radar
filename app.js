@@ -712,6 +712,9 @@ function setMapState(title, detail = "", type = "loading") {
     return;
   }
 
+  mapPreview?.classList.toggle("is-map-loading", type === "loading");
+  mapPreview?.classList.toggle("is-map-error", type === "error");
+  mapPreview?.classList.remove("is-map-loaded");
   mapState.hidden = false;
   mapState.dataset.type = type;
   mapState.innerHTML = `<strong>${escapeHTML(title)}</strong>${detail ? `<span>${escapeHTML(detail)}</span>` : ""}`;
@@ -722,6 +725,8 @@ function hideMapState() {
     return;
   }
 
+  mapPreview?.classList.remove("is-map-loading", "is-map-error");
+  mapPreview?.classList.add("is-map-loaded");
   mapState.hidden = true;
 }
 
@@ -867,8 +872,10 @@ function initKakaoMap() {
   kakaoMapLoaded = false;
   kakao.maps.event.addListener(kakaoMap, "tilesloaded", () => {
     kakaoMapLoaded = true;
-    kakaoMapElement.classList.add("loaded");
-    hideMapState();
+    setTimeout(() => {
+      kakaoMapElement.classList.add("loaded");
+      hideMapState();
+    }, 450);
   });
 
   setTimeout(() => {

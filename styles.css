@@ -474,6 +474,11 @@ h1 {
   opacity: 1;
 }
 
+.map-preview.is-map-loaded::before,
+.map-preview.is-map-loaded::after {
+  display: none;
+}
+
 .map-state {
   position: absolute;
   left: 50%;
@@ -535,8 +540,8 @@ h1 {
   background-size: 42px 42px;
 }
 
-.kakao-map.loaded + .map-grid,
-.kakao-map.loaded ~ .station-marker {
+.map-preview.is-map-loaded .map-grid,
+.map-preview.is-map-loaded .station-marker {
   display: none;
 }
 
