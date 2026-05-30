@@ -1,9 +1,9 @@
-const CACHE_NAME = "ttareungi-radar-v39";
+const CACHE_NAME = "ttareungi-radar-v40";
 const APP_SHELL = "./";
 const APP_ASSETS = [
   APP_SHELL,
-  "./styles.css?v=39",
-  "./app.js?v=39",
+  "./styles.css?v=40",
+  "./app.js?v=40",
   "./privacy.html",
   "./manifest.webmanifest",
   "./icons/icon-192.svg",

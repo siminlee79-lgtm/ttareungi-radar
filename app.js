@@ -94,6 +94,7 @@ let highlightedStationId = "";
 let kakaoMap = null;
 let kakaoOverlays = [];
 let kakaoMapLoaded = false;
+let mapResizeObserver = null;
 let pullStartY = 0;
 let isPullingToRefresh = false;
 let isRefreshing = false;
@@ -730,6 +731,30 @@ function hideMapState() {
   mapState.hidden = true;
 }
 
+function relayoutKakaoMap(lat, lng) {
+  if (!kakaoMap || !window.kakao?.maps) {
+    return;
+  }
+
+  const center = Number.isFinite(lat) && Number.isFinite(lng) ? new kakao.maps.LatLng(lat, lng) : null;
+  kakaoMap.relayout();
+
+  if (center) {
+    kakaoMap.setCenter(center);
+  }
+}
+
+function queueKakaoMapRelayout(lat, lng) {
+  if (!kakaoMap || !window.kakao?.maps) {
+    return;
+  }
+
+  requestAnimationFrame(() => relayoutKakaoMap(lat, lng));
+  [180, 500, 1200].forEach((delay) => {
+    setTimeout(() => relayoutKakaoMap(lat, lng), delay);
+  });
+}
+
 function showRadarNotification(body) {
   const notification = new Notification("따릉이 레이더", {
     body,
@@ -868,11 +893,21 @@ function initKakaoMap() {
     center,
     level: 5,
   });
+  queueKakaoMapRelayout(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng);
+
+  if ("ResizeObserver" in window && mapPreview && !mapResizeObserver) {
+    mapResizeObserver = new ResizeObserver(() => {
+      const center = currentPosition || DEFAULT_CENTER;
+      queueKakaoMapRelayout(center.lat, center.lng);
+    });
+    mapResizeObserver.observe(mapPreview);
+  }
 
   kakaoMapLoaded = false;
   kakao.maps.event.addListener(kakaoMap, "tilesloaded", () => {
     kakaoMapLoaded = true;
     setTimeout(() => {
+      relayoutKakaoMap();
       kakaoMapElement.classList.add("loaded");
       hideMapState();
     }, 450);
@@ -914,8 +949,9 @@ function moveKakaoMap(lat, lng) {
     return;
   }
 
-  kakaoMap.setCenter(new kakao.maps.LatLng(lat, lng));
+  relayoutKakaoMap(lat, lng);
   kakaoMap.setLevel(4);
+  queueKakaoMapRelayout(lat, lng);
 }
 
 function focusStation(stationId) {
@@ -995,6 +1031,11 @@ function switchTab(tabName) {
   radarPage.classList.toggle("active", tabName === "radar");
   placesPage.classList.toggle("active", tabName === "places");
   tipsPage.classList.toggle("active", tabName === "tips");
+
+  if (tabName === "radar") {
+    const center = currentPosition || DEFAULT_CENTER;
+    queueKakaoMapRelayout(center.lat, center.lng);
+  }
 }
 
 function switchTipCategory(category) {
