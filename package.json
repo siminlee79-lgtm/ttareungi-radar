@@ -8,11 +8,13 @@
     "cap:sync": "npm run app:prepare && npx cap sync",
     "cap:open:android": "npx cap open android",
     "android:build:debug": "node scripts/build-android-debug.js",
-    "check": "node --check app.js && node --check service-worker.js && node --check scripts/build-station-stats.js && node --check scripts/fetch-latest-daily-usage.js && node --check scripts/prepare-capacitor-web.js && node --check scripts/build-android-debug.js"
+    "push:secret": "node scripts/generate-push-secret.js",
+    "check": "node --check app.js && node --check service-worker.js && node --check scripts/build-station-stats.js && node --check scripts/fetch-latest-daily-usage.js && node --check scripts/prepare-capacitor-web.js && node --check scripts/build-android-debug.js && node --check scripts/generate-push-secret.js && node --check functions/api/_shared/push-utils.js && node --check functions/api/push/register.js && node --check functions/api/push/run.js && node --check functions/api/push/test.js && node --check functions/api/push/unregister.js && node --check workers/push-cron.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
     "@capacitor/cli": "^8.3.4",
-    "@capacitor/core": "^8.3.4"
+    "@capacitor/core": "^8.3.4",
+    "@capacitor/push-notifications": "^8.1.1"
   }
 }

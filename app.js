@@ -4,6 +4,7 @@ const SEOUL_BIKE_API = LOCAL_SEOUL_OPEN_API_KEY
   ? `http://openapi.seoul.go.kr:8088/${LOCAL_SEOUL_OPEN_API_KEY}/json/bikeList`
   : "";
 const REMOTE_API_BASE_URL = APP_CONFIG.API_BASE_URL || "https://ttareungi-radar.pages.dev";
+const APP_VERSION = APP_CONFIG.APP_VERSION || "v43";
 const IS_NATIVE_APP =
   Boolean(APP_CONFIG.IS_NATIVE_APP) ||
   Boolean(window.Capacitor?.isNativePlatform?.()) ||
@@ -33,6 +34,8 @@ const fallbackStations = [
 const storageKey = "ttareungi-radar-places-v2";
 const alarmStorageKey = "ttareungi-radar-alarms-v1";
 const alarmSentStorageKey = "ttareungi-radar-alarm-sent-v1";
+const pushDeviceIdKey = "ttareungi-radar-push-device-id-v1";
+const pushTokenKey = "ttareungi-radar-fcm-token-v1";
 const stationList = document.querySelector("#stationList");
 const refreshButton = document.querySelector("#refreshButton");
 const pullRefreshHint = document.querySelector("#pullRefreshHint");
@@ -98,6 +101,8 @@ let mapResizeObserver = null;
 let pullStartY = 0;
 let isPullingToRefresh = false;
 let isRefreshing = false;
+let pushListenersReady = false;
+let pushToken = window.localStorage.getItem(pushTokenKey) || "";
 
 function createId() {
   return window.crypto?.randomUUID ? window.crypto.randomUUID() : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -153,6 +158,136 @@ function normalizePlaceTime(savedTime, fallback) {
 
 function saveAlarmSettings() {
   window.localStorage.setItem(alarmStorageKey, JSON.stringify(alarmSettings));
+}
+
+function getPushNotificationsPlugin() {
+  return window.Capacitor?.Plugins?.PushNotifications || null;
+}
+
+function getDeviceId() {
+  const saved = window.localStorage.getItem(pushDeviceIdKey);
+
+  if (saved) {
+    return saved;
+  }
+
+  const nextId = createId();
+  window.localStorage.setItem(pushDeviceIdKey, nextId);
+  return nextId;
+}
+
+function getPushPayload(token) {
+  return {
+    deviceId: getDeviceId(),
+    token,
+    platform: IS_NATIVE_APP ? "android" : "web",
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Seoul",
+    appVersion: APP_VERSION,
+    places,
+    alarmSettings,
+  };
+}
+
+async function syncPushRegistration(token = pushToken) {
+  if (!token || !alarmSettings.enabled) {
+    return false;
+  }
+
+  const response = await fetch(`${REMOTE_API_BASE_URL}/api/push/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(getPushPayload(token)),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || error.error || `푸시 설정 저장 실패: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+async function unregisterPushRegistration() {
+  const token = pushToken || window.localStorage.getItem(pushTokenKey) || "";
+  const response = await fetch(`${REMOTE_API_BASE_URL}/api/push/unregister`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      deviceId: getDeviceId(),
+      token,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || error.error || `푸시 해제 실패: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+async function setupNativePushNotifications() {
+  const PushNotifications = getPushNotificationsPlugin();
+
+  if (!PushNotifications || pushListenersReady) {
+    return;
+  }
+
+  pushListenersReady = true;
+  await PushNotifications.addListener("registration", async (token) => {
+    pushToken = token.value;
+    window.localStorage.setItem(pushTokenKey, pushToken);
+
+    try {
+      await syncPushRegistration(pushToken);
+      if (notificationStatus && alarmSettings.enabled) {
+        notificationStatus.innerHTML = "서버 푸시 알림이 준비됐습니다.<br />정해진 시간에 저장장소 기준으로 알려드립니다.";
+      }
+    } catch (error) {
+      console.warn("푸시 등록 저장 실패", error);
+      if (notificationStatus) {
+        notificationStatus.textContent = "푸시 토큰은 받았지만 서버 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+      }
+    }
+  });
+  await PushNotifications.addListener("registrationError", (error) => {
+    console.warn("FCM 토큰 발급 실패", error);
+    if (notificationStatus) {
+      notificationStatus.textContent = "푸시 토큰 발급에 실패했습니다. Firebase 설정을 확인해 주세요.";
+    }
+  });
+  await PushNotifications.addListener("pushNotificationReceived", (notification) => {
+    console.info("푸시 수신", notification);
+  });
+  await PushNotifications.addListener("pushNotificationActionPerformed", () => {
+    window.focus();
+    switchTab("radar");
+  });
+}
+
+async function enableNativePushNotifications() {
+  const PushNotifications = getPushNotificationsPlugin();
+
+  if (!PushNotifications) {
+    notificationStatus.textContent = "Android 푸시 플러그인을 찾지 못했습니다.";
+    return false;
+  }
+
+  await setupNativePushNotifications();
+  const permission = await PushNotifications.requestPermissions();
+
+  if (permission.receive !== "granted") {
+    notificationStatus.textContent = "Android 설정에서 알림 권한을 허용해야 합니다.";
+    return false;
+  }
+
+  notificationStatus.innerHTML = "푸시 토큰을 발급받는 중입니다.<br />잠시만 기다려 주세요.";
+  await PushNotifications.register();
+  return true;
 }
 
 function normalizeStation(row) {
@@ -517,12 +652,15 @@ function renderDashboard() {
 function renderAlarmSettings() {
   if (notificationStatus) {
     const enabledText = alarmSettings.enabled ? "켜짐" : "꺼짐";
+    const pushText = IS_NATIVE_APP && alarmSettings.enabled ? " 서버 푸시 준비 중." : "";
     const targetText = getAlarmTargetPlaces().map((place) => place.name).join(", ") || "저장 장소 1, 2";
-    notificationStatus.innerHTML = `${targetText} 기준 레이다 알림 ${enabledText}.<br />알림시간은 내장소저장에서 장소별로 설정합니다.`;
+    notificationStatus.innerHTML = `${targetText} 기준 레이다 알림 ${enabledText}.${pushText}<br />알림시간은 내장소저장에서 장소별로 설정합니다.`;
   }
 
   if (notificationButton && alarmSettings.enabled) {
-    notificationButton.textContent = "켜짐";
+    notificationButton.textContent = "알림 끄기";
+  } else if (notificationButton) {
+    notificationButton.textContent = "알림 켜기";
   }
 }
 
@@ -1199,7 +1337,36 @@ saveAlarmButton?.addEventListener("click", async () => {
   renderAlarmSettings();
 });
 
-notificationButton.addEventListener("click", async () => {
+notificationButton?.addEventListener("click", async () => {
+  if (alarmSettings.enabled) {
+    alarmSettings = {
+      ...alarmSettings,
+      enabled: false,
+    };
+    saveAlarmSettings();
+    renderAlarmSettings();
+    unregisterPushRegistration().catch((error) => console.warn("푸시 해제 실패", error));
+    if (notificationStatus) {
+      notificationStatus.textContent = "레이다 알림을 껐습니다.";
+    }
+    return;
+  }
+
+  if (IS_NATIVE_APP && getPushNotificationsPlugin()) {
+    alarmSettings = {
+      ...alarmSettings,
+      enabled: true,
+      targets: {
+        saved1: true,
+        saved2: true,
+      },
+    };
+    saveAlarmSettings();
+    renderAlarmSettings();
+    await enableNativePushNotifications();
+    return;
+  }
+
   if (!("Notification" in window)) {
     notificationStatus.textContent = "이 브라우저는 알림을 지원하지 않습니다.";
     return;
@@ -1222,6 +1389,7 @@ notificationButton.addEventListener("click", async () => {
   };
   saveAlarmSettings();
   renderAlarmSettings();
+  syncPushRegistration().catch((error) => console.warn("푸시 설정 저장 실패", error));
   const alert = getAlarmNotificationAlert();
 
   showRadarNotification(`${formatNow(new Date())} 기준 ${alert.title}. ${alert.text}`);
@@ -1241,6 +1409,53 @@ function getAlarmTargetPlaces() {
   }
 
   return selected;
+}
+
+function hasSavedAlarmPlaces() {
+  return getAlarmTargetPlaces().length > 0;
+}
+
+function shouldUseNativePush() {
+  return IS_NATIVE_APP && Boolean(getPushNotificationsPlugin());
+}
+
+async function ensureNativePushEnabled(statusTarget = null) {
+  if (!shouldUseNativePush() || alarmSettings.enabled || !hasSavedAlarmPlaces()) {
+    return false;
+  }
+
+  if (statusTarget) {
+    statusTarget.textContent = "알림 권한을 확인하는 중입니다.";
+    statusTarget.dataset.type = "info";
+  }
+
+  alarmSettings = {
+    ...alarmSettings,
+    enabled: true,
+    targets: {
+      saved1: true,
+      saved2: true,
+    },
+  };
+  saveAlarmSettings();
+  renderAlarmSettings();
+
+  const enabled = await enableNativePushNotifications();
+  alarmSettings = {
+    ...alarmSettings,
+    enabled,
+  };
+  saveAlarmSettings();
+  renderAlarmSettings();
+
+  if (statusTarget) {
+    statusTarget.textContent = enabled
+      ? "장소와 알림시간을 저장했고, 알림 권한을 허용했습니다."
+      : "장소는 저장했습니다. Android 설정에서 알림 권한을 허용해야 정해진 시간에 받을 수 있습니다.";
+    statusTarget.dataset.type = enabled ? "success" : "error";
+  }
+
+  return enabled;
 }
 
 function getPlaceNotificationAlert(place) {
@@ -1376,7 +1591,7 @@ async function savePlaceSlot(event, form) {
     },
   };
 
-  if ("Notification" in window) {
+  if (!shouldUseNativePush() && "Notification" in window) {
     const permission = await Notification.requestPermission();
     alarmSettings.enabled = permission === "granted" || alarmSettings.enabled;
   }
@@ -1386,6 +1601,11 @@ async function savePlaceSlot(event, form) {
   renderPlaces();
   setAddressFieldError(form, false);
   setSlotStatus(form, "장소와 알림시간을 저장했습니다.", "success");
+  const pushEnabled = await ensureNativePushEnabled(form.querySelector("[data-slot-status]"));
+
+  if (!pushEnabled) {
+    syncPushRegistration().catch((error) => console.warn("푸시 설정 저장 실패", error));
+  }
 }
 
 placeList?.addEventListener("click", (event) => {
@@ -1452,6 +1672,14 @@ loadHistoricalStats();
 initKakaoMap();
 fetchSeoulBikeStations();
 setTimeout(requestCurrentLocation, 600);
+setupNativePushNotifications().catch((error) => console.warn("푸시 리스너 준비 실패", error));
+if (shouldUseNativePush() && hasSavedAlarmPlaces() && !alarmSettings.enabled) {
+  setTimeout(() => {
+    ensureNativePushEnabled().catch((error) => console.warn("푸시 자동 설정 실패", error));
+  }, 900);
+} else {
+  syncPushRegistration().catch((error) => console.warn("푸시 설정 저장 실패", error));
+}
 registerServiceWorker();
 setupPullToRefresh();
 setInterval(renderDashboard, 60 * 1000);

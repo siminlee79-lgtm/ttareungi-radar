@@ -5,6 +5,9 @@ www/
 .wrangler/
 .dev.vars
 config.local.js
+android/app/google-services.json
+android/.idea/
+android/gradle/gradle-daemon-jvm.properties
 raw-data/**/*.csv
 raw-data/**/*.xlsx
 raw-data/**/*.xls

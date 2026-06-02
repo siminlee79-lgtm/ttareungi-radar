@@ -1,0 +1,11 @@
+name = "ttareungi-radar-push-cron"
+main = "workers/push-cron.js"
+compatibility_date = "2026-05-30"
+
+[vars]
+PUSH_RUN_URL = "https://ttareungi-radar.pages.dev/api/push/run"
+# Set PUSH_CRON_SECRET as a secret, not plain text:
+# wrangler secret put PUSH_CRON_SECRET
+
+[triggers]
+crons = ["* * * * *"]
