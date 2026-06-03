@@ -4,7 +4,7 @@ const SEOUL_BIKE_API = LOCAL_SEOUL_OPEN_API_KEY
   ? `http://openapi.seoul.go.kr:8088/${LOCAL_SEOUL_OPEN_API_KEY}/json/bikeList`
   : "";
 const REMOTE_API_BASE_URL = APP_CONFIG.API_BASE_URL || "https://ttareungi-radar.pages.dev";
-const APP_VERSION = APP_CONFIG.APP_VERSION || "v45";
+const APP_VERSION = APP_CONFIG.APP_VERSION || "v46";
 const IS_NATIVE_APP =
   Boolean(APP_CONFIG.IS_NATIVE_APP) ||
   Boolean(window.Capacitor?.isNativePlatform?.()) ||
@@ -906,7 +906,8 @@ async function loadHistoricalStats() {
   }
 
   try {
-    const response = await fetch("./data/station-stats.json", { cache: "no-store" });
+    const statsUrl = IS_NATIVE_APP ? `${REMOTE_API_BASE_URL}/data/station-stats.json` : "./data/station-stats.json";
+    const response = await fetch(statsUrl, { cache: "no-store" });
 
     if (!response.ok) {
       throw new Error("stats file not found");
