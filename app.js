@@ -4,7 +4,7 @@ const SEOUL_BIKE_API = LOCAL_SEOUL_OPEN_API_KEY
   ? `http://openapi.seoul.go.kr:8088/${LOCAL_SEOUL_OPEN_API_KEY}/json/bikeList`
   : "";
 const REMOTE_API_BASE_URL = APP_CONFIG.API_BASE_URL || "https://ttareungi-radar.pages.dev";
-const APP_VERSION = APP_CONFIG.APP_VERSION || "v47";
+const APP_VERSION = APP_CONFIG.APP_VERSION || "v48";
 const IS_NATIVE_APP =
   Boolean(APP_CONFIG.IS_NATIVE_APP) ||
   Boolean(window.Capacitor?.isNativePlatform?.()) ||

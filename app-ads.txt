@@ -1,0 +1,3 @@
+# Authorized app advertising sellers for ttareungi-radar.pages.dev.
+# Add the Google AdMob publisher line before ads go live.
+# google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0

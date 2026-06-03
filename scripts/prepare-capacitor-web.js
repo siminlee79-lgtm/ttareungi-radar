@@ -6,7 +6,11 @@ const outputDir = path.join(projectRoot, "www");
 
 const files = [
   "index.html",
+  "developer.html",
   "privacy.html",
+  "app-ads.txt",
+  "robots.txt",
+  "sitemap.xml",
   "app.js",
   "styles.css",
   "manifest.webmanifest",
@@ -57,7 +61,7 @@ fs.writeFileSync(
     "window.TTAREUNGI_CONFIG = {",
     "  ...(window.TTAREUNGI_CONFIG || {}),",
     "  IS_NATIVE_APP: true,",
-    '  APP_VERSION: "v47",',
+    '  APP_VERSION: "v48",',
     '  API_BASE_URL: "https://ttareungi-radar.pages.dev",',
     "};",
     "",
