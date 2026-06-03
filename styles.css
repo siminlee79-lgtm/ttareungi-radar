@@ -967,6 +967,16 @@ h1 {
   background: #fff;
 }
 
+.personal-stats {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid rgba(46, 123, 255, 0.2);
+  border-radius: 8px;
+  background: #fff;
+}
+
 .live-stats-head span {
   color: var(--green);
   font-size: 12px;
@@ -998,6 +1008,11 @@ h1 {
   gap: 10px;
 }
 
+.place-stat-grid {
+  display: grid;
+  gap: 10px;
+}
+
 .live-stat-card {
   min-width: 0;
   padding: 12px;
@@ -1012,6 +1027,120 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface-strong);
+}
+
+.place-stat-card,
+.alternative-ranking {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-strong);
+}
+
+.place-stat-card.is-empty {
+  background: #fff;
+}
+
+.place-stat-card-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.place-stat-card-head span,
+.alternative-ranking span {
+  display: block;
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.place-stat-card-head strong,
+.place-stat-card > strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--text);
+  font-size: 17px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.place-stat-card mark {
+  min-width: 52px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  text-align: center;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.place-stat-card mark.safe {
+  background: var(--green);
+}
+
+.place-stat-card mark.warning {
+  background: #d98600;
+}
+
+.place-stat-card mark.danger {
+  background: var(--red);
+}
+
+.place-stat-card mark.waiting {
+  background: var(--muted);
+}
+
+.place-stat-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.place-stat-metrics div {
+  min-width: 0;
+  padding: 9px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.place-stat-metrics dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.place-stat-metrics dd {
+  margin-top: 4px;
+  color: var(--green);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.place-stat-card p {
+  margin-top: 10px;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.place-stat-card small {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.alternative-ranking h4 {
+  margin-top: 4px;
+  color: var(--text);
+  font-size: 17px;
+  line-height: 1.3;
 }
 
 .live-stat-card.wide {
@@ -1087,6 +1216,15 @@ h1 {
   color: var(--green);
   font-size: 13px;
   white-space: nowrap;
+}
+
+.ranking-list.compact li {
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+
+.ranking-list.compact span {
+  white-space: normal;
 }
 
 .tip-card {

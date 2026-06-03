@@ -10,7 +10,7 @@
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg" />
     <link rel="apple-touch-icon" href="./icons/icon-192.svg" />
-    <link rel="stylesheet" href="./styles.css?v=43" />
+    <link rel="stylesheet" href="./styles.css?v=44" />
   </head>
   <body>
     <div class="pull-refresh-hint" id="pullRefreshHint">놓으면 새로고침</div>
@@ -304,6 +304,28 @@
                 </article>
               </div>
             </section>
+            <section class="personal-stats" aria-label="내 저장장소 기반 통계">
+              <div class="live-stats-head">
+                <span>내 장소 통계</span>
+                <h3>저장장소별 따릉이 안정성</h3>
+                <p id="placeStatsSummary">저장한 장소 주변 대여소를 계산하는 중입니다.</p>
+              </div>
+              <div id="placeStatsGrid" class="place-stat-grid">
+                <article class="place-stat-card is-empty">
+                  <strong>저장장소를 등록하면 표시됩니다</strong>
+                  <p>집, 회사처럼 자주 쓰는 장소 기준으로 주변 수급과 대체 대여소를 보여드립니다.</p>
+                </article>
+              </div>
+              <article class="alternative-ranking">
+                <div>
+                  <span>대체 대여소 랭킹</span>
+                  <h4>지금 이동해도 좋은 후보</h4>
+                </div>
+                <ol id="alternativeRankingList" class="ranking-list compact">
+                  <li>저장장소 등록 후 계산됩니다</li>
+                </ol>
+              </article>
+            </section>
             <section class="historical-stats" aria-label="과거 데이터 기반 통계">
               <div class="live-stats-head">
                 <span>과거 데이터 통계</span>
@@ -428,6 +450,6 @@
 
     <script src="./config.local.js"></script>
     <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=34bb6af6aca7523a764d2047e36d5be4&libraries=services"></script>
-    <script src="./app.js?v=43"></script>
+    <script src="./app.js?v=44"></script>
   </body>
 </html>

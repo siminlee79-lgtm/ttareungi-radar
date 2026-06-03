@@ -4,7 +4,7 @@ const SEOUL_BIKE_API = LOCAL_SEOUL_OPEN_API_KEY
   ? `http://openapi.seoul.go.kr:8088/${LOCAL_SEOUL_OPEN_API_KEY}/json/bikeList`
   : "";
 const REMOTE_API_BASE_URL = APP_CONFIG.API_BASE_URL || "https://ttareungi-radar.pages.dev";
-const APP_VERSION = APP_CONFIG.APP_VERSION || "v43";
+const APP_VERSION = APP_CONFIG.APP_VERSION || "v44";
 const IS_NATIVE_APP =
   Boolean(APP_CONFIG.IS_NATIVE_APP) ||
   Boolean(window.Capacitor?.isNativePlatform?.()) ||
@@ -75,6 +75,9 @@ const statEmptyStations = document.querySelector("#statEmptyStations");
 const statCriticalStations = document.querySelector("#statCriticalStations");
 const statBestStation = document.querySelector("#statBestStation");
 const statBestStationDetail = document.querySelector("#statBestStationDetail");
+const placeStatsSummary = document.querySelector("#placeStatsSummary");
+const placeStatsGrid = document.querySelector("#placeStatsGrid");
+const alternativeRankingList = document.querySelector("#alternativeRankingList");
 const historicalStatsStatus = document.querySelector("#historicalStatsStatus");
 const topRentalStations = document.querySelector("#topRentalStations");
 const lowUsageStations = document.querySelector("#lowUsageStations");
@@ -646,6 +649,7 @@ function renderDashboard() {
   renderWatchCards(now);
   renderStations(stations);
   renderLiveStats(stations);
+  renderPersonalStats();
   renderAlarmSettings();
 }
 
@@ -712,6 +716,188 @@ function renderLiveStats(list = stations) {
     statBestStationDetail.textContent = "주변 대여소 계산 중";
     liveStatsSummary.textContent = "위치와 대여소 정보를 불러오면 실시간 통계를 보여드립니다.";
   }
+}
+
+function getStationBikeCount(station) {
+  return Math.max(0, Number(station?.bikes) || 0);
+}
+
+function getPlaceAvailability(nearby) {
+  const stationsCount = nearby.length;
+  const totalBikes = nearby.reduce((sum, station) => sum + getStationBikeCount(station), 0);
+  const emptyStations = nearby.filter((station) => getStationBikeCount(station) <= 0).length;
+  const criticalStations = nearby.filter((station) => getRisk(station).level === "critical").length;
+  const bestStation = [...nearby].sort((a, b) => {
+    const bikeGap = getStationBikeCount(b) - getStationBikeCount(a);
+    return bikeGap || (Number(a.distanceMeters) || 0) - (Number(b.distanceMeters) || 0);
+  })[0];
+  const averageBikes = stationsCount ? totalBikes / stationsCount : 0;
+  const score = Math.max(0, Math.min(100, Math.round(averageBikes * 9 + (stationsCount - criticalStations) * 5 - emptyStations * 8)));
+
+  if (!stationsCount) {
+    return {
+      label: "대기",
+      className: "waiting",
+      summary: "주변 대여소를 계산하는 중입니다.",
+      totalBikes,
+      emptyStations,
+      criticalStations,
+      bestStation,
+      score: "--",
+    };
+  }
+
+  if (totalBikes <= 3 || criticalStations >= Math.ceil(stationsCount / 2)) {
+    return {
+      label: "주의",
+      className: "danger",
+      summary: "가까운 대여소 재고가 빠르게 줄어든 상태입니다.",
+      totalBikes,
+      emptyStations,
+      criticalStations,
+      bestStation,
+      score,
+    };
+  }
+
+  if (totalBikes <= 10 || emptyStations >= 2) {
+    return {
+      label: "보통",
+      className: "warning",
+      summary: "대여는 가능하지만 출발 전 한 번 더 확인하는 편이 좋습니다.",
+      totalBikes,
+      emptyStations,
+      criticalStations,
+      bestStation,
+      score,
+    };
+  }
+
+  return {
+    label: "안정",
+    className: "safe",
+    summary: "주변 대체 선택지가 충분한 편입니다.",
+    totalBikes,
+    emptyStations,
+    criticalStations,
+    bestStation,
+    score,
+  };
+}
+
+function getPlaceStatCard(place, index) {
+  const displayName = getPlaceDisplayName(place);
+
+  if (!place?.lat || !place?.lng) {
+    return `
+      <article class="place-stat-card is-empty">
+        <span>저장장소 ${index + 1}</span>
+        <strong>${escapeHTML(displayName)} 위치 확인 필요</strong>
+        <p>주소를 다시 저장하면 주변 대여소 통계를 계산합니다.</p>
+      </article>
+    `;
+  }
+
+  const nearby = getNearbyStations({ lat: place.lat, lng: place.lng }, 8);
+  const stats = getPlaceAvailability(nearby);
+  const bestText = stats.bestStation
+    ? `${escapeHTML(stats.bestStation.name)} · ${stats.bestStation.distance} · ${getStationBikeCount(stats.bestStation)}대`
+    : "대체 대여소 계산 중";
+
+  return `
+    <article class="place-stat-card">
+      <div class="place-stat-card-head">
+        <div>
+          <span>${escapeHTML(place.type || `저장장소 ${index + 1}`)}</span>
+          <strong>${escapeHTML(displayName)}</strong>
+        </div>
+        <mark class="${stats.className}">${stats.label}</mark>
+      </div>
+      <dl class="place-stat-metrics">
+        <div>
+          <dt>주변 재고</dt>
+          <dd>${stats.totalBikes}대</dd>
+        </div>
+        <div>
+          <dt>0대</dt>
+          <dd>${stats.emptyStations}곳</dd>
+        </div>
+        <div>
+          <dt>지수</dt>
+          <dd>${stats.score}</dd>
+        </div>
+      </dl>
+      <p>${stats.summary}</p>
+      <small>추천 대체: ${bestText}</small>
+    </article>
+  `;
+}
+
+function renderAlternativeRanking(savedPlaces) {
+  if (!alternativeRankingList) {
+    return;
+  }
+
+  const candidates = savedPlaces
+    .flatMap((place) => {
+      if (!place?.lat || !place?.lng) {
+        return [];
+      }
+
+      return getNearbyStations({ lat: place.lat, lng: place.lng }, 6)
+        .filter((station) => getStationBikeCount(station) > 0)
+        .map((station) => ({
+          ...station,
+          placeName: getPlaceDisplayName(place),
+          rankScore: getStationBikeCount(station) * 8 - (Number(station.distanceMeters) || 0) / 80,
+        }));
+    })
+    .sort((a, b) => b.rankScore - a.rankScore)
+    .slice(0, 5);
+
+  if (!candidates.length) {
+    alternativeRankingList.innerHTML = "<li>대체 대여소 계산 중</li>";
+    return;
+  }
+
+  alternativeRankingList.innerHTML = candidates
+    .map(
+      (station) => `
+        <li>
+          <strong>${escapeHTML(station.name)}</strong>
+          <span>${escapeHTML(station.placeName)} · ${station.distance} · ${getStationBikeCount(station)}대</span>
+        </li>
+      `,
+    )
+    .join("");
+}
+
+function renderPersonalStats() {
+  if (!placeStatsSummary || !placeStatsGrid) {
+    return;
+  }
+
+  const savedPlaces = places.filter(Boolean);
+
+  if (!savedPlaces.length) {
+    placeStatsSummary.textContent = "내장소저장에서 집이나 회사 위치를 저장하면 개인 통계가 표시됩니다.";
+    placeStatsGrid.innerHTML = `
+      <article class="place-stat-card is-empty">
+        <strong>저장장소를 등록하면 표시됩니다</strong>
+        <p>자주 쓰는 장소 기준으로 주변 재고, 0대 대여소, 대체 후보를 계산합니다.</p>
+      </article>
+    `;
+    renderAlternativeRanking([]);
+    return;
+  }
+
+  const readyPlaces = savedPlaces.filter((place) => place.lat && place.lng);
+  const placeNames = savedPlaces.map((place) => getPlaceDisplayName(place)).join(", ");
+  placeStatsSummary.textContent = readyPlaces.length
+    ? `${placeNames} 주변 실시간 대여소를 비교했습니다.`
+    : "저장장소 좌표를 확인하면 주변 통계를 계산합니다.";
+  placeStatsGrid.innerHTML = savedPlaces.map(getPlaceStatCard).join("");
+  renderAlternativeRanking(savedPlaces);
 }
 
 async function loadHistoricalStats() {
