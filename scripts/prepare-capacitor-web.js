@@ -8,6 +8,8 @@ const files = [
   "index.html",
   "developer.html",
   "privacy.html",
+  "terms.html",
+  "location.html",
   "app-ads.txt",
   "robots.txt",
   "sitemap.xml",
@@ -17,7 +19,7 @@ const files = [
   "service-worker.js",
 ];
 
-const directories = ["data", "icons"];
+const directories = ["data", "guides", "icons"];
 
 function copyFile(relativePath) {
   const source = path.join(projectRoot, relativePath);
@@ -61,7 +63,7 @@ fs.writeFileSync(
     "window.TTAREUNGI_CONFIG = {",
     "  ...(window.TTAREUNGI_CONFIG || {}),",
     "  IS_NATIVE_APP: true,",
-    '  APP_VERSION: "v48",',
+    '  APP_VERSION: "v49",',
     '  API_BASE_URL: "https://ttareungi-radar.pages.dev",',
     "};",
     "",
