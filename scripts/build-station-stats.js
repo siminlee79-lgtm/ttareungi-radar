@@ -140,8 +140,19 @@ function buildStats() {
   const topRentalStations = [...stations].sort((a, b) => b.usageCount - a.usageCount).slice(0, 10);
   const lowUsageStations = [...stations].sort((a, b) => a.usageCount - b.usageCount || a.stationName.localeCompare(b.stationName, "ko-KR")).slice(0, 10);
 
+  const nextStats = {
+    sourceFiles,
+    topRentalStations,
+    lowUsageStations,
+  };
+  const existingStats = readExistingStats();
+  const generatedAt =
+    existingStats && sameStats(existingStats, nextStats)
+      ? existingStats.generatedAt
+      : new Date().toISOString();
+
   const output = {
-    generatedAt: new Date().toISOString(),
+    generatedAt,
     sourceFiles,
     topRentalStations,
     lowUsageStations,
@@ -149,6 +160,26 @@ function buildStats() {
 
   fs.writeFileSync(outputFile, `${JSON.stringify(output, null, 2)}\n`, "utf8");
   return output;
+}
+
+function readExistingStats() {
+  if (!fs.existsSync(outputFile)) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(fs.readFileSync(outputFile, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function sameStats(existing, nextStats) {
+  return (
+    JSON.stringify(existing.sourceFiles || []) === JSON.stringify(nextStats.sourceFiles) &&
+    JSON.stringify(existing.topRentalStations || []) === JSON.stringify(nextStats.topRentalStations) &&
+    JSON.stringify(existing.lowUsageStations || []) === JSON.stringify(nextStats.lowUsageStations)
+  );
 }
 
 try {
