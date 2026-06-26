@@ -8,6 +8,12 @@ config.local.js
 android/app/google-services.json
 android/.idea/
 android/gradle/gradle-daemon-jvm.properties
+.android-user/
+.gradle-user/
+
+# Firebase service account keys — NEVER commit
+*-firebase-adminsdk-*.json
+firebase-service-account*.json
 raw-data/**/*.csv
 raw-data/**/*.xlsx
 raw-data/**/*.xls
