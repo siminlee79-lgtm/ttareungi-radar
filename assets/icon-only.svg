@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512" role="img" aria-label="따릉이 레이더 아이콘">
+  <rect width="512" height="512" rx="102" fill="#2f4050"/>
+  <g transform="translate(256,256) scale(0.86) translate(-256,-256)">
+    <g fill="none" stroke="#27d884">
+      <circle cx="256" cy="256" r="196" stroke-width="12" opacity=".9"/>
+      <circle cx="256" cy="256" r="130" stroke-width="9" opacity=".32"/>
+      <circle cx="256" cy="256" r="64" stroke-width="7" opacity=".18"/>
+    </g>
+    <path d="M256 256 L394.6 117.4" fill="none" stroke="#27d884" stroke-width="10" stroke-linecap="round" opacity=".7"/>
+    <g fill="#27d884">
+      <circle cx="152" cy="176" r="13"/>
+      <circle cx="366" cy="296" r="11"/>
+      <circle cx="172" cy="348" r="12"/>
+      <circle cx="330" cy="372" r="9"/>
+    </g>
+    <g transform="translate(256,268) scale(0.78) translate(-256,-280)">
+      <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="196" cy="306" r="54" stroke-width="20"/>
+        <circle cx="316" cy="306" r="54" stroke-width="20"/>
+        <path d="M196 306 L240 240 L306 240 L316 306 M240 240 L256 306 L306 240 M196 306 L256 306" stroke-width="18"/>
+        <path d="M306 240 L332 228" stroke-width="16"/>
+        <path d="M228 234 L252 234" stroke-width="14"/>
+      </g>
+      <circle cx="196" cy="306" r="8" fill="#ffffff"/>
+      <circle cx="316" cy="306" r="8" fill="#ffffff"/>
+    </g>
+  </g>
+</svg>

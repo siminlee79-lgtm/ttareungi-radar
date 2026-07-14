@@ -8,11 +8,12 @@
     "cap:sync": "npm run app:prepare && npx cap sync",
     "cap:open:android": "npx cap open android",
     "android:build:debug": "node scripts/build-android-debug.js",
+    "icons:build": "node scripts/build-android-icons.js",
     "stats:fetch": "node scripts/fetch-latest-daily-usage.js",
     "stats:build": "node scripts/build-station-stats.js",
     "stats:update": "npm run stats:fetch && npm run stats:build",
     "push:secret": "node scripts/generate-push-secret.js",
-    "check": "node --check app.js && node --check service-worker.js && node --check scripts/build-station-stats.js && node --check scripts/fetch-latest-daily-usage.js && node --check scripts/prepare-capacitor-web.js && node --check scripts/build-android-debug.js && node --check scripts/generate-push-secret.js && node --check functions/api/_shared/push-utils.js && node --check functions/api/push/register.js && node --check functions/api/push/run.js && node --check functions/api/push/test.js && node --check functions/api/push/unregister.js && node --check workers/push-cron.js"
+    "check": "node --check app.js && node --check service-worker.js && node --check scripts/build-station-stats.js && node --check scripts/fetch-latest-daily-usage.js && node --check scripts/prepare-capacitor-web.js && node --check scripts/build-android-debug.js && node --check scripts/build-android-icons.js && node --check scripts/generate-push-secret.js && node --check functions/api/_shared/push-utils.js && node --check functions/api/push/register.js && node --check functions/api/push/run.js && node --check functions/api/push/test.js && node --check functions/api/push/unregister.js && node --check workers/push-cron.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
@@ -21,6 +22,7 @@
     "@capacitor/push-notifications": "^8.1.1"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "wrangler": "^4.97.0"
   }
 }
