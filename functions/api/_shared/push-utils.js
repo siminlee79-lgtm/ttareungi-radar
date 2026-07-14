@@ -136,22 +136,25 @@ export async function fetchAllBikeRows(env) {
   }
 
   const baseUrl = `http://openapi.seoul.go.kr:8088/${seoulOpenApiKey}/json/bikeList`;
+  // list_total_count reports the requested page size (1000), not the grand
+  // total, so page sequentially until a short page (the last one) instead.
   const pageSize = 1000;
-  const firstPage = await fetchBikePage(baseUrl, 1, pageSize);
-  const firstRows = firstPage.rentBikeStatus?.row || [];
-  const totalCount = Number(firstPage.rentBikeStatus?.list_total_count) || firstRows.length;
+  const maxPages = 6;
+  const allRows = [];
 
-  if (totalCount <= pageSize) {
-    return firstRows;
+  for (let page = 0; page < maxPages; page += 1) {
+    const start = page * pageSize + 1;
+    const end = start + pageSize - 1;
+    const data = await fetchBikePage(baseUrl, start, end);
+    const rows = data.rentBikeStatus?.row || [];
+    allRows.push(...rows);
+
+    if (rows.length < pageSize) {
+      break;
+    }
   }
 
-  const ranges = [];
-  for (let start = pageSize + 1; start <= totalCount; start += pageSize) {
-    ranges.push([start, Math.min(start + pageSize - 1, totalCount)]);
-  }
-
-  const restPages = await Promise.all(ranges.map(([start, end]) => fetchBikePage(baseUrl, start, end)));
-  return firstRows.concat(restPages.flatMap((data) => data.rentBikeStatus?.row || []));
+  return allRows;
 }
 
 async function fetchBikePage(baseUrl, start, end) {
