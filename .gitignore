@@ -21,3 +21,9 @@ raw-data/**/*.zip
 
 # wrangler download dumps secrets in plain text — never commit
 wrangler.toml
+
+# Upload key and its passwords — never commit
+keystore.properties
+*.jks
+*.keystore
+upload_certificate.pem

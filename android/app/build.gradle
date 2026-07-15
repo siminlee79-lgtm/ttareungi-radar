@@ -1,5 +1,18 @@
 apply plugin: 'com.android.application'
 
+// Upload key credentials live in android/keystore.properties, which is
+// gitignored. Without it the release build stays unsigned, so a fresh clone
+// still builds rather than failing on a missing keystore.
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+def hasUploadKey = keystorePropertiesFile.exists()
+
+// Read as UTF-8 explicitly: Properties.load(InputStream) decodes ISO-8859-1,
+// which mangles non-ASCII paths (e.g. a Korean username in storeFile).
+if (hasUploadKey) {
+    keystorePropertiesFile.withReader("UTF-8") { keystoreProperties.load(it) }
+}
+
 android {
     namespace = "com.bikeradarseoul.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,8 +29,21 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (hasUploadKey) {
+            release {
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
+            if (hasUploadKey) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

@@ -5,6 +5,8 @@ const path = require("path");
 const projectRoot = path.resolve(__dirname, "..");
 const androidDir = path.join(projectRoot, "android");
 const androidStudioJbr = "C:\\Program Files\\Android\\Android Studio\\jbr";
+const keystorePropertiesFile = path.join(androidDir, "keystore.properties");
+const aabPath = path.join(androidDir, "app", "build", "outputs", "bundle", "release", "app-release.aab");
 
 function run(command, options = {}) {
   const result = spawnSync(command, {
@@ -24,6 +26,12 @@ function run(command, options = {}) {
   }
 }
 
+if (!fs.existsSync(keystorePropertiesFile)) {
+  console.error("Missing android/keystore.properties — the bundle would be unsigned.");
+  console.error("Copy android/keystore.properties.example and fill in the upload key details.");
+  process.exit(1);
+}
+
 const env = { ...process.env };
 
 if (!env.JAVA_HOME && fs.existsSync(androidStudioJbr)) {
@@ -37,4 +45,12 @@ if (!env.JAVA_HOME && fs.existsSync(androidStudioJbr)) {
 const gradlew = path.join(androidDir, process.platform === "win32" ? "gradlew.bat" : "gradlew");
 
 run("npm run cap:sync", { env });
-run(`"${gradlew}" assembleDebug`, { cwd: androidDir, env });
+run(`"${gradlew}" bundleRelease`, { cwd: androidDir, env });
+
+if (!fs.existsSync(aabPath)) {
+  console.error(`\nBuild reported success but no bundle at ${aabPath}`);
+  process.exit(1);
+}
+
+const sizeMb = (fs.statSync(aabPath).size / 1024 / 1024).toFixed(2);
+console.log(`\nBundle ready: ${path.relative(projectRoot, aabPath)} (${sizeMb} MB)`);
