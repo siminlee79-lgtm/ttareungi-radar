@@ -17,31 +17,22 @@ export async function onRequestPost(context) {
     return jsonResponse({ error: "deviceId or token is required" }, { status: 400 });
   }
 
-  const now = new Date().toISOString();
+  // Turning alerts off removes the row outright rather than flipping a flag.
+  // The row holds the coordinates of the user's home and workplace, and there
+  // was no other path that ever erased them — leaving them behind after the
+  // user opted out is not something we can justify.
   const result = body.deviceId
     ? await db
-        .prepare(
-          `
-          UPDATE push_subscriptions
-          SET enabled = 0, updated_at = ?
-          WHERE device_id = ?
-          `,
-        )
-        .bind(now, String(body.deviceId))
+        .prepare(`DELETE FROM push_subscriptions WHERE device_id = ?`)
+        .bind(String(body.deviceId))
         .run()
     : await db
-        .prepare(
-          `
-          UPDATE push_subscriptions
-          SET enabled = 0, updated_at = ?
-          WHERE fcm_token = ?
-          `,
-        )
-        .bind(now, String(body.token))
+        .prepare(`DELETE FROM push_subscriptions WHERE fcm_token = ?`)
+        .bind(String(body.token))
         .run();
 
   return jsonResponse({
     ok: true,
-    changed: result.meta?.changes || 0,
+    deleted: result.meta?.changes || 0,
   });
 }
