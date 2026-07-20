@@ -1,9 +1,9 @@
-const CACHE_NAME = "ttareungi-radar-v55";
+const CACHE_NAME = "ttareungi-radar-v56";
 const APP_SHELL = "./";
 const APP_ASSETS = [
   APP_SHELL,
-  "./styles.css?v=55",
-  "./app.js?v=55",
+  "./styles.css?v=56",
+  "./app.js?v=56",
   "./developer.html",
   "./terms.html",
   "./location.html",
@@ -36,6 +36,15 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
 
   if (request.method !== "GET") {
+    return;
+  }
+
+  // Live endpoints must never be cached. The fallback handler below is
+  // cache-first and stores any successful GET, which would pin bike counts to
+  // whatever the very first request returned — the cache only cleared when
+  // CACHE_NAME changed, so a user who installed once and never updated would
+  // see frozen stock forever.
+  if (url.pathname.startsWith("/api/")) {
     return;
   }
 

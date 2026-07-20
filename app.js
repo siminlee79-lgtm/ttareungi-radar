@@ -24,13 +24,6 @@ const DEFAULT_ALARMS = {
   },
 };
 
-const fallbackStations = [
-  { id: "demo-1", name: "홍대입구역 2번출구", bikes: 1, rackCount: 15, shared: 7, lat: 37.55762, lng: 126.92432 },
-  { id: "demo-2", name: "동교동삼거리", bikes: 8, rackCount: 14, shared: 57, lat: 37.5569, lng: 126.9197 },
-  { id: "demo-3", name: "연남파출소 앞", bikes: 3, rackCount: 12, shared: 25, lat: 37.5623, lng: 126.9237 },
-  { id: "demo-4", name: "경의선숲길 입구", bikes: 5, rackCount: 10, shared: 50, lat: 37.5596, lng: 126.9296 },
-];
-
 const storageKey = "ttareungi-radar-places-v2";
 const alarmStorageKey = "ttareungi-radar-alarms-v1";
 const alarmSentStorageKey = "ttareungi-radar-alarm-sent-v1";
@@ -335,8 +328,8 @@ async function fetchSeoulBikeStations() {
   } catch (error) {
     console.error(error);
     allStations = [];
-    stations = fallbackStations;
-    locationStatus.textContent = "실시간 데이터를 불러오지 못해 임시 데이터로 표시합니다.";
+    stations = [];
+    locationStatus.textContent = "실시간 대여소 정보를 불러오지 못했습니다. 잠시 후 새로고침해 주세요.";
     renderDashboard();
     renderKakaoOverlays(stations);
   }
@@ -409,23 +402,35 @@ function getTimeProfile(now) {
   return { label: "일반 시간대", pressure: 6, direction: "대여" };
 }
 
+// Matches both the legend shown in the app ("보관량이 총 거치대 수의 …") and the
+// server-side calculation behind push alerts, so a station cannot read 여유 here
+// while the notification calls it 마감임박.
+//
+// The previous version keyed off `shared`, which normalizeStation coerces with
+// `|| 0` — so a station the API returns without that field scored 0% and was
+// labelled 마감임박 even with a full rack.
 function getStockRate(station) {
-  if (Number.isFinite(station.shared) && station.shared >= 0) {
-    return Math.min(100, Math.max(0, station.shared));
+  const bikes = Number(station.bikes) || 0;
+  const rackCount = Number(station.rackCount) || 0;
+
+  if (rackCount > 0) {
+    return Math.min(100, Math.max(0, (bikes / rackCount) * 100));
   }
 
-  if (station.rackCount > 0) {
-    return Math.min(100, Math.max(0, (station.bikes / station.rackCount) * 100));
+  if (Number.isFinite(station.shared) && station.shared > 0) {
+    return Math.min(100, station.shared);
   }
 
-  return station.bikes > 0 ? 100 : 0;
+  return bikes > 0 ? 100 : 0;
 }
 
 function getRisk(station) {
   const stockRate = getStockRate(station);
   const score = Math.round(100 - stockRate);
 
-  if (stockRate < 30) {
+  // The `bikes <= 1` rule mirrors the push job: one remaining bike is gone by
+  // the time you walk over, so a big rack holding a single bike is not 여유.
+  if ((Number(station.bikes) || 0) <= 1 || stockRate < 30) {
     return { label: "마감임박", level: "critical", className: "danger", score, stockRate };
   }
 
@@ -467,9 +472,13 @@ function formatBikeAvailability(count) {
 }
 
 function getNearbyStations(center, limit = 8) {
-  const source = allStations.length ? allStations : fallbackStations;
+  // No invented stations: showing demo entries with real-looking distances and
+  // bike counts misleads the user about live availability.
+  if (!allStations.length) {
+    return [];
+  }
 
-  return source
+  return allStations
     .map((station) => {
       const distanceMeters = calculateDistance(center, station);
 
@@ -1764,6 +1773,22 @@ notificationButton?.addEventListener("click", async () => {
   }
 
   if (IS_NATIVE_APP && getPushNotificationsPlugin()) {
+    // Only record "on" once the permission actually came back granted. Saving
+    // it up front left the app claiming alerts were on while no token existed,
+    // and syncPushRegistration bails without a token — so every later change to
+    // a place or alarm time silently stopped reaching the server.
+    const enabled = await enableNativePushNotifications().catch((error) => {
+      console.warn("푸시 활성화 실패", error);
+      return false;
+    });
+
+    if (!enabled) {
+      alarmSettings = { ...alarmSettings, enabled: false };
+      saveAlarmSettings();
+      renderAlarmSettings();
+      return;
+    }
+
     alarmSettings = {
       ...alarmSettings,
       enabled: true,
@@ -1774,7 +1799,7 @@ notificationButton?.addEventListener("click", async () => {
     };
     saveAlarmSettings();
     renderAlarmSettings();
-    await enableNativePushNotifications();
+    await syncPushRegistration().catch((error) => console.warn("푸시 설정 저장 실패", error));
     return;
   }
 
@@ -1975,13 +2000,27 @@ async function savePlaceSlot(event, form) {
     submitButton.disabled = false;
   }
 
+  // The alarm time has nothing to do with the address, so persist it before the
+  // lookup can fail. Previously a failed geocode returned early and threw the
+  // time change away, which read as "I changed the time and it did not stick".
+  alarmSettings = {
+    ...alarmSettings,
+    targets: { ...alarmSettings.targets, [slotKey]: true },
+    placeTimes: {
+      ...alarmSettings.placeTimes,
+      [slotKey]: { ...alarmSettings.placeTimes?.[slotKey], time: form.elements.alarmTime.value },
+    },
+  };
+  saveAlarmSettings();
+
   if (!coords) {
     const message = window.kakao?.maps?.services
-      ? "주소를 찾지 못했어요. 도로명주소나 지번주소로 다시 입력해 주세요. 예: 서울 강서구 등촌로 163"
-      : "주소검색 연결이 막혔어요. 로컬 127.0.0.1 대신 배포 주소나 localhost에서 다시 확인해주세요.";
+      ? "알림시간은 저장했어요. 다만 주소를 찾지 못했습니다. 목록에서 장소를 골라 주세요."
+      : "알림시간은 저장했어요. 다만 지금은 장소 검색을 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.";
     setSlotStatus(form, message, "error");
     setAddressFieldError(form, true);
     form.elements.address.focus();
+    syncPushRegistration().catch((error) => console.warn("푸시 설정 저장 실패", error));
     return;
   }
 
@@ -1997,15 +2036,6 @@ async function savePlaceSlot(event, form) {
 
   places[slotIndex] = nextPlace;
   places = places.slice(0, 2);
-  alarmSettings = {
-    ...alarmSettings,
-    enabled: alarmSettings.enabled,
-    targets: { ...alarmSettings.targets, [slotKey]: true },
-    placeTimes: {
-      ...alarmSettings.placeTimes,
-      [slotKey]: { ...alarmSettings.placeTimes?.[slotKey], time: form.elements.alarmTime.value },
-    },
-  };
 
   if (!shouldUseNativePush() && "Notification" in window) {
     const permission = await Notification.requestPermission();
