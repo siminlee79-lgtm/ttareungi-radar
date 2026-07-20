@@ -27,3 +27,6 @@ keystore.properties
 *.jks
 *.keystore
 upload_certificate.pem
+
+# Play Console 업로드용 사본 (원본은 assets/ 에 있음)
+play-assets/
