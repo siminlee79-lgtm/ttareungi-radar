@@ -695,6 +695,9 @@ function renderDashboard() {
   const now = new Date();
   currentDateTime.textContent = formatNow(now);
   timeMode.textContent = getTimeProfile(now).label;
+  // Drops the explainer once the app is set up, so returning users open
+  // straight onto the stock figures.
+  document.documentElement.classList.toggle("has-places", places.length > 0);
   renderWatchCards(now);
   renderStations(stations);
   renderLiveStats(stations);

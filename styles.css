@@ -84,7 +84,7 @@ button {
   width: min(100%, 460px);
   min-height: 100vh;
   margin: 0 auto;
-  padding: 18px 16px 28px;
+  padding: 12px 16px 28px;
 }
 
 .topbar {
@@ -92,7 +92,7 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 18px;
+  margin-bottom: 12px;
 }
 
 .topbar-actions {
@@ -663,29 +663,32 @@ h1 {
   display: block;
 }
 
+/* A slim line rather than a card: this is a freshness stamp, not content, and
+   as a card it pushed the stock figures below the fold. */
 .time-strip {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 12px;
-  align-items: center;
-  margin-bottom: 12px;
-  padding: 12px 14px;
-  border: 1px solid rgba(11, 107, 87, 0.18);
-  border-radius: 8px;
-  background: var(--surface-strong);
-}
-
-.time-strip span,
-.time-strip p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 0 0 10px;
   color: var(--muted);
   font-size: 12px;
   font-weight: 800;
 }
 
-.time-strip strong {
-  display: block;
-  margin-top: 2px;
-  font-size: 15px;
+.time-strip-mode::before {
+  content: "·";
+  margin-right: 8px;
+}
+
+/* The intro card explains the app to someone who has not set it up yet. Once a
+   place is saved it is just a banner between the user and their numbers. */
+.has-places .intro-card {
+  display: none;
+}
+
+.time-strip #currentDateTime {
+  color: var(--text);
 }
 
 .place-form {
