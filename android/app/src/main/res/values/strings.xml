@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Bike Radar Seoul</string>
-    <string name="title_activity_main">Bike Radar Seoul</string>
+    <string name="app_name">따릉이 레이더</string>
+    <string name="title_activity_main">따릉이 레이더</string>
     <string name="package_name">com.bikeradarseoul.app</string>
     <string name="custom_url_scheme">com.bikeradarseoul.app</string>
 </resources>
