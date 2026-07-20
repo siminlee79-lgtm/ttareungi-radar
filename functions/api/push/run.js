@@ -82,6 +82,7 @@ async function runPushJob(context) {
   const rows = await fetchAllBikeRows(context.env);
   let sent = 0;
   let failed = 0;
+  let dropped = 0;
 
   for (const item of dueItems) {
     const alerts = item.duePlaces.map((place) => buildPlaceAlert(place, rows));
@@ -103,7 +104,16 @@ async function runPushJob(context) {
       await logNotification(db, item.subscription.device_id, item.sentKey, "sent", "");
       sent += 1;
     } catch (error) {
-      await markError(db, item.subscription.device_id, error.message);
+      // FCM reports a permanently dead token when the app was uninstalled or
+      // its data cleared. Retrying it every minute forever just burns quota, so
+      // disable the row and let the app re-register if it comes back.
+      if (isDeadToken(error.message)) {
+        await disableSubscription(db, item.subscription.device_id, error.message);
+        dropped += 1;
+      } else {
+        await markError(db, item.subscription.device_id, error.message);
+      }
+
       await logNotification(db, item.subscription.device_id, item.sentKey, "failed", error.message);
       failed += 1;
     }
@@ -115,7 +125,25 @@ async function runPushJob(context) {
     due: dueItems.length,
     sent,
     failed,
+    dropped,
   });
+}
+
+function isDeadToken(message = "") {
+  return /NotRegistered|Requested entity was not found|UNREGISTERED|InvalidRegistration/i.test(message);
+}
+
+async function disableSubscription(db, deviceId, message) {
+  await db
+    .prepare(
+      `
+      UPDATE push_subscriptions
+      SET enabled = 0, last_error = ?, updated_at = ?
+      WHERE device_id = ?
+      `,
+    )
+    .bind(message.slice(0, 500), new Date().toISOString(), deviceId)
+    .run();
 }
 
 async function markSent(db, deviceId, sentKey) {

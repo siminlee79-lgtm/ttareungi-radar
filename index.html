@@ -12,7 +12,7 @@
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg" />
     <link rel="apple-touch-icon" href="./icons/icon-192.svg" />
-    <link rel="stylesheet" href="./styles.css?v=49" />
+    <link rel="stylesheet" href="./styles.css?v=51" />
   </head>
   <body>
     <div class="pull-refresh-hint" id="pullRefreshHint">놓으면 새로고침</div>
@@ -23,7 +23,7 @@
           <h1><button class="brand-home" id="brandHomeButton" type="button">따릉이 레이더</button></h1>
         </div>
         <div class="topbar-actions">
-          <button class="icon-button" id="installGuideButton" aria-label="홈 화면 추가 방법" title="홈 화면 추가 방법">
+          <button class="icon-button" id="installGuideButton" aria-label="안내" title="안내">
             <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 8.2a3.8 3.8 0 1 1 0 7.6 3.8 3.8 0 0 1 0-7.6Z" stroke-width="1.7" />
               <path d="M12 2.8v2.1M12 19.1v2.1M4.4 4.4l1.5 1.5M18.1 18.1l1.5 1.5M2.8 12h2.1M19.1 12h2.1M4.4 19.6l1.5-1.5M18.1 5.9l1.5-1.5" stroke-width="1.7" />
@@ -387,11 +387,11 @@
     <div class="modal-backdrop" id="installGuideDialog" hidden>
       <section class="install-modal" role="dialog" aria-modal="true" aria-labelledby="installGuideTitle">
         <div class="modal-header">
-          <h2 id="installGuideTitle">홈 화면 추가 방법</h2>
+          <h2 id="installGuideTitle">안내</h2>
           <button class="modal-close" id="installGuideClose" type="button" aria-label="닫기">닫기</button>
         </div>
         <div class="install-guide-list">
-          <article>
+          <article data-web-only>
             <h3>iPhone Safari</h3>
             <ol>
               <li>Safari에서 따릉이 레이더를 엽니다.</li>
@@ -400,7 +400,7 @@
               <li>추가를 누르면 앱처럼 실행됩니다.</li>
             </ol>
           </article>
-          <article>
+          <article data-web-only>
             <h3>Android Chrome</h3>
             <ol>
               <li>Chrome에서 따릉이 레이더를 엽니다.</li>
@@ -423,6 +423,6 @@
 
     <script src="./config.local.js"></script>
     <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=34bb6af6aca7523a764d2047e36d5be4&libraries=services"></script>
-    <script src="./app.js?v=49"></script>
+    <script src="./app.js?v=51"></script>
   </body>
 </html>

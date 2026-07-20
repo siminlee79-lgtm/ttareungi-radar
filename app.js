@@ -1853,6 +1853,12 @@ tipCategoryButtons.forEach((button) => {
 
 openMyButton?.addEventListener("click", () => switchTab("places"));
 
+// Lets the stylesheet show app-only UI (the scheduled alert panel) without
+// each rule having to re-check the platform.
+if (IS_NATIVE_APP) {
+  document.documentElement.classList.add("is-native-app");
+}
+
 renderPlaces();
 renderDashboard();
 loadHistoricalStats();
