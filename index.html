@@ -12,7 +12,7 @@
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg" />
     <link rel="apple-touch-icon" href="./icons/icon-192.svg" />
-    <link rel="stylesheet" href="./styles.css?v=53" />
+    <link rel="stylesheet" href="./styles.css?v=54" />
   </head>
   <body>
     <div class="pull-refresh-hint" id="pullRefreshHint">놓으면 새로고침</div>
@@ -160,9 +160,19 @@
                 장소명
                 <input name="name" type="text" placeholder="예: 우리집, 회사, 학원" required />
               </label>
-              <label>
+              <label class="address-field">
                 주소
-                <input name="address" type="text" placeholder="예: 서울 강서구 ..." required />
+                <input
+                  name="address"
+                  type="text"
+                  placeholder="장소명 또는 주소 입력 (예: 마곡나루역)"
+                  autocomplete="off"
+                  role="combobox"
+                  aria-expanded="false"
+                  aria-autocomplete="list"
+                  required
+                />
+                <ul class="address-suggestions" data-address-suggestions role="listbox" aria-label="주소 검색 결과" hidden></ul>
               </label>
               <label>
                 알림시간
@@ -192,9 +202,19 @@
                 장소명
                 <input name="name" type="text" placeholder="예: 우리집, 회사, 학원" required />
               </label>
-              <label>
+              <label class="address-field">
                 주소
-                <input name="address" type="text" placeholder="예: 서울 강서구 ..." required />
+                <input
+                  name="address"
+                  type="text"
+                  placeholder="장소명 또는 주소 입력 (예: 마곡나루역)"
+                  autocomplete="off"
+                  role="combobox"
+                  aria-expanded="false"
+                  aria-autocomplete="list"
+                  required
+                />
+                <ul class="address-suggestions" data-address-suggestions role="listbox" aria-label="주소 검색 결과" hidden></ul>
               </label>
               <label>
                 알림시간
@@ -423,6 +443,6 @@
 
     <script src="./config.local.js"></script>
     <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=34bb6af6aca7523a764d2047e36d5be4&libraries=services"></script>
-    <script src="./app.js?v=53"></script>
+    <script src="./app.js?v=54"></script>
   </body>
 </html>

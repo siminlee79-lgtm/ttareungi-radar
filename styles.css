@@ -887,6 +887,73 @@ h1 {
   min-height: 50px;
 }
 
+.address-field {
+  position: relative;
+}
+
+.address-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 264px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(15, 34, 25, 0.14);
+}
+
+.address-suggestions[hidden] {
+  display: none;
+}
+
+.address-suggestions li + li {
+  border-top: 1px solid var(--line);
+}
+
+.address-suggestion {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  /* Comfortably tappable: these sit close together on a phone. */
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.address-suggestion:hover,
+.address-suggestion:focus-visible {
+  background: var(--surface-strong);
+}
+
+.address-suggestion strong {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.address-suggestion span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.address-suggestions .address-suggestion-empty {
+  padding: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .form-status {
   min-height: 18px;
   margin: -2px 0 0;

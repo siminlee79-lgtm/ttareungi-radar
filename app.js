@@ -1131,6 +1131,230 @@ function geocodePlace(address) {
   });
 }
 
+// Address autocomplete
+//
+// Typing an address by hand was fragile: a typo failed outright, and an
+// ambiguous query silently resolved to whichever result came back first — so
+// "마곡나루역" could save the wrong exit. Letting the user pick from the
+// candidate list removes both failure modes and gives us exact coordinates
+// without a second lookup.
+
+const ADDRESS_SUGGESTION_LIMIT = 6;
+const addressSearchTimers = new WeakMap();
+const addressSearchTokens = new WeakMap();
+
+function searchAddressCandidates(query) {
+  return new Promise((resolve) => {
+    const services = window.kakao?.maps?.services;
+
+    if (!services || !query) {
+      resolve([]);
+      return;
+    }
+
+    const pending = [];
+
+    pending.push(
+      new Promise((done) => {
+        if (!services.Places) {
+          done([]);
+          return;
+        }
+
+        new services.Places().keywordSearch(query, (result, status) => {
+          done(
+            status === services.Status.OK
+              ? result.map((item) => ({
+                  title: item.place_name,
+                  detail: item.road_address_name || item.address_name || "",
+                  lat: Number(item.y),
+                  lng: Number(item.x),
+                }))
+              : [],
+          );
+        });
+      }),
+    );
+
+    pending.push(
+      new Promise((done) => {
+        new services.Geocoder().addressSearch(query, (result, status) => {
+          done(
+            status === services.Status.OK
+              ? result.map((item) => ({
+                  title: item.road_address?.address_name || item.address_name,
+                  detail: item.road_address ? item.address_name : "지번",
+                  lat: Number(item.y),
+                  lng: Number(item.x),
+                }))
+              : [],
+          );
+        });
+      }),
+    );
+
+    Promise.all(pending).then((groups) => {
+      const seen = new Set();
+      const merged = [];
+
+      for (const item of groups.flat()) {
+        if (!item.title || !Number.isFinite(item.lat) || !Number.isFinite(item.lng)) {
+          continue;
+        }
+
+        const key = `${item.title}|${item.lat.toFixed(5)},${item.lng.toFixed(5)}`;
+        if (seen.has(key)) {
+          continue;
+        }
+
+        seen.add(key);
+        merged.push(item);
+
+        if (merged.length >= ADDRESS_SUGGESTION_LIMIT) {
+          break;
+        }
+      }
+
+      resolve(merged);
+    });
+  });
+}
+
+function getSuggestionList(form) {
+  return form.querySelector("[data-address-suggestions]");
+}
+
+function closeAddressSuggestions(form) {
+  const list = getSuggestionList(form);
+
+  if (!list) {
+    return;
+  }
+
+  list.hidden = true;
+  list.innerHTML = "";
+  form.elements.address?.setAttribute("aria-expanded", "false");
+}
+
+function renderAddressSuggestions(form, candidates) {
+  const list = getSuggestionList(form);
+
+  if (!list) {
+    return;
+  }
+
+  if (!candidates.length) {
+    list.innerHTML = '<li class="address-suggestion-empty">검색 결과가 없습니다. 더 정확히 입력해 보세요.</li>';
+    list.hidden = false;
+    form.elements.address?.setAttribute("aria-expanded", "true");
+    return;
+  }
+
+  list.innerHTML = candidates
+    .map(
+      (item, index) => `
+        <li role="option" aria-selected="false">
+          <button type="button" class="address-suggestion" data-suggestion-index="${index}">
+            <strong>${escapeHTML(item.title)}</strong>
+            ${item.detail ? `<span>${escapeHTML(item.detail)}</span>` : ""}
+          </button>
+        </li>
+      `,
+    )
+    .join("");
+  list.hidden = false;
+  form.elements.address?.setAttribute("aria-expanded", "true");
+  list.dataset.candidates = JSON.stringify(candidates);
+}
+
+function pickAddressSuggestion(form, candidate) {
+  const input = form.elements.address;
+  input.value = candidate.detail && candidate.detail !== "지번" ? candidate.detail : candidate.title;
+  // Remember what the user actually chose so we can skip geocoding entirely,
+  // and so an edit afterwards invalidates the pick.
+  form.dataset.pickedLat = String(candidate.lat);
+  form.dataset.pickedLng = String(candidate.lng);
+  form.dataset.pickedFor = input.value;
+  closeAddressSuggestions(form);
+  setAddressFieldError(form, false);
+  setSlotStatus(form, `위치를 확인했어요: ${candidate.title}`, "success");
+}
+
+function getPickedCoords(form) {
+  const address = form.elements.address.value.trim();
+
+  if (!address || form.dataset.pickedFor !== address) {
+    return null;
+  }
+
+  const lat = Number(form.dataset.pickedLat);
+  const lng = Number(form.dataset.pickedLng);
+
+  return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+}
+
+function setupAddressAutocomplete(form) {
+  const input = form.elements.address;
+  const list = getSuggestionList(form);
+
+  if (!input || !list) {
+    return;
+  }
+
+  input.addEventListener("input", () => {
+    const query = input.value.trim();
+    window.clearTimeout(addressSearchTimers.get(form));
+
+    if (query.length < 2) {
+      closeAddressSuggestions(form);
+      return;
+    }
+
+    addressSearchTimers.set(
+      form,
+      window.setTimeout(async () => {
+        const token = Symbol("search");
+        addressSearchTokens.set(form, token);
+        const candidates = await searchAddressCandidates(query);
+
+        // A newer keystroke already started its own search — drop this result.
+        if (addressSearchTokens.get(form) !== token) {
+          return;
+        }
+
+        renderAddressSuggestions(form, candidates);
+      }, 280),
+    );
+  });
+
+  list.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-suggestion-index]");
+
+    if (!button) {
+      return;
+    }
+
+    const candidates = JSON.parse(list.dataset.candidates || "[]");
+    const candidate = candidates[Number(button.dataset.suggestionIndex)];
+
+    if (candidate) {
+      pickAddressSuggestion(form, candidate);
+    }
+  });
+
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeAddressSuggestions(form);
+    }
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!form.contains(event.target)) {
+      closeAddressSuggestions(form);
+    }
+  });
+}
+
 function requestCurrentLocation(options = {}) {
   if (!("geolocation" in navigator)) {
     locationFailed = true;
@@ -1717,6 +1941,7 @@ placeForms.forEach((form) => {
     setAddressFieldError(form, false);
     setSlotStatus(form);
   });
+  setupAddressAutocomplete(form);
 });
 
 async function savePlaceSlot(event, form) {
@@ -1740,7 +1965,11 @@ async function savePlaceSlot(event, form) {
     submitButton.disabled = true;
   }
 
-  const coords = canReuseCoords ? { lat: Number(editingPlace.lat), lng: Number(editingPlace.lng) } : await geocodePlace(address);
+  // Prefer the exact coordinates behind the suggestion the user picked; fall
+  // back to geocoding only when the address was typed without choosing one.
+  const pickedCoords = getPickedCoords(form);
+  const coords = pickedCoords
+    || (canReuseCoords ? { lat: Number(editingPlace.lat), lng: Number(editingPlace.lng) } : await geocodePlace(address));
 
   if (submitButton) {
     submitButton.disabled = false;
