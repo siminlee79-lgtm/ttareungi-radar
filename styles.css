@@ -863,6 +863,12 @@ h1 {
   font-weight: 800;
 }
 
+/* `display: grid` above outranks the hidden attribute's built-in
+   `display: none`, so the name field has to be hidden explicitly. */
+.place-form label[hidden] {
+  display: none;
+}
+
 .place-form input,
 .place-form select {
   width: 100%;

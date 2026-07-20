@@ -24,6 +24,11 @@ const DEFAULT_ALARMS = {
   },
 };
 
+// 집·사무실 같은 분류를 고르면 이름도 사실상 같은 값이라 두 번 입력하게 된다.
+// 분류로 표현되지 않는 곳(기타)일 때만 이름을 따로 받는다.
+// loadPlaces()가 파일 상단에서 바로 호출되므로 선언도 여기 있어야 한다.
+const CUSTOM_PLACE_TYPE = "기타";
+
 const storageKey = "ttareungi-radar-places-v2";
 const alarmStorageKey = "ttareungi-radar-alarms-v1";
 const alarmSentStorageKey = "ttareungi-radar-alarm-sent-v1";
@@ -112,7 +117,16 @@ function loadPlaces() {
   }
 
   try {
-    return JSON.parse(saved);
+    const parsed = JSON.parse(saved);
+
+    // Names used to be free text alongside the category, so a place could be
+    // saved as 집 / "울집". The category is the name now unless it is 기타, and
+    // aligning old rows here keeps every screen showing the same label.
+    return Array.isArray(parsed)
+      ? parsed.map((place) =>
+          place && !usesCustomName(place.type) && place.type ? { ...place, name: place.type } : place,
+        )
+      : [];
   } catch {
     return [];
   }
@@ -578,6 +592,32 @@ function getWatchedPlaces() {
   return [places[0], places[1]];
 }
 
+function usesCustomName(type) {
+  return type === CUSTOM_PLACE_TYPE;
+}
+
+function getPlaceNameFromForm(form) {
+  const type = form.elements.type.value;
+  return usesCustomName(type) ? form.elements.name.value.trim() : type;
+}
+
+function syncNameFieldVisibility(form) {
+  const field = form.querySelector("[data-name-field]");
+  const nameInput = form.elements.name;
+
+  if (!field || !nameInput) {
+    return;
+  }
+
+  const custom = usesCustomName(form.elements.type.value);
+  field.hidden = !custom;
+  nameInput.required = custom;
+
+  if (!custom) {
+    nameInput.value = "";
+  }
+}
+
 function getPlaceIcon(type = "") {
   const icons = {
     집: "🏠",
@@ -625,7 +665,7 @@ function renderSavedWatchCard(card, place, fallbackName, now) {
   if (!place) {
     setWatchCard(card, {
       title: `📍 ${fallbackName}를 저장하세요`,
-      detailHTML: "내장소저장에서 자주 가는 장소와 알림시간을 저장하세요.",
+      detailHTML: "장소·알림 탭에서 자주 가는 곳과 알림 시간을 설정하세요.",
       label: "대기",
       score: "--",
       className: "waiting",
@@ -664,10 +704,11 @@ function renderDashboard() {
 
 function renderAlarmSettings() {
   if (notificationStatus) {
-    const enabledText = alarmSettings.enabled ? "켜짐" : "꺼짐";
-    const pushText = IS_NATIVE_APP && alarmSettings.enabled ? " 서버 푸시 준비 중." : "";
-    const targetText = getAlarmTargetPlaces().map((place) => place.name).join(", ") || "저장 장소 1, 2";
-    notificationStatus.innerHTML = `${targetText} 기준 레이다 알림 ${enabledText}.${pushText}<br />알림시간은 내장소저장에서 장소별로 설정합니다.`;
+    const targets = getAlarmTargetPlaces().map((place) => place.name);
+    const targetText = targets.length ? escapeHTML(targets.join(", ")) : "저장한 장소";
+    notificationStatus.innerHTML = alarmSettings.enabled
+      ? `${targetText} 기준으로 알림이 켜져 있습니다.<br />알림 시간은 장소·알림 탭에서 장소별로 설정합니다.`
+      : "알림이 꺼져 있습니다.<br />켜면 정한 시간에 따릉이 재고를 알려드립니다.";
   }
 
   if (notificationButton && alarmSettings.enabled) {
@@ -889,7 +930,7 @@ function renderPersonalStats() {
   const savedPlaces = places.filter(Boolean);
 
   if (!savedPlaces.length) {
-    placeStatsSummary.textContent = "내장소저장에서 집이나 회사 위치를 저장하면 개인 통계가 표시됩니다.";
+    placeStatsSummary.textContent = "장소·알림 탭에서 집이나 회사를 저장하면 개인 통계가 표시됩니다.";
     placeStatsGrid.innerHTML = `
       <article class="place-stat-card is-empty">
         <strong>저장장소를 등록하면 표시됩니다</strong>
@@ -974,7 +1015,7 @@ function renderPlaces() {
 
     if (place) {
       typeInput.value = place.type || "집";
-      nameInput.value = place.name || "";
+      nameInput.value = usesCustomName(place.type) ? place.name || "" : "";
       addressInput.value = place.address || "";
       summary.textContent = `${getPlaceIcon(place.type)} ${place.name} 저장됨`;
     } else {
@@ -984,6 +1025,7 @@ function renderPlaces() {
       summary.textContent = slotIndex === 0 ? "첫 번째 장소를 저장하세요" : "두 번째 장소를 저장하세요";
     }
 
+    syncNameFieldVisibility(form);
     alarmInput.value = getPlaceAlarmTime(slotKey);
   });
 
@@ -1966,6 +2008,8 @@ placeForms.forEach((form) => {
     setAddressFieldError(form, false);
     setSlotStatus(form);
   });
+  form.elements.type?.addEventListener("change", () => syncNameFieldVisibility(form));
+  syncNameFieldVisibility(form);
   setupAddressAutocomplete(form);
 });
 
@@ -1975,7 +2019,7 @@ async function savePlaceSlot(event, form) {
   const slotIndex = Number(form.dataset.slotIndex || 0);
   const slotKey = getPlaceSlotKey(slotIndex);
   const address = form.elements.address.value.trim();
-  const name = form.elements.name.value.trim();
+  const name = getPlaceNameFromForm(form);
   const editingPlace = places[slotIndex];
   const canReuseCoords =
     editingPlace &&
@@ -1983,6 +2027,12 @@ async function savePlaceSlot(event, form) {
     Number.isFinite(Number(editingPlace.lat)) &&
     Number.isFinite(Number(editingPlace.lng));
   const submitButton = form.querySelector('button[type="submit"]');
+
+  if (!name) {
+    setSlotStatus(form, "장소 이름을 입력해 주세요.", "error");
+    form.elements.name.focus();
+    return;
+  }
 
   setAddressFieldError(form, false);
   setSlotStatus(form, "주소를 확인하는 중입니다.", "info");

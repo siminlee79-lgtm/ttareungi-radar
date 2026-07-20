@@ -63,7 +63,7 @@ fs.writeFileSync(
     "window.TTAREUNGI_CONFIG = {",
     "  ...(window.TTAREUNGI_CONFIG || {}),",
     "  IS_NATIVE_APP: true,",
-    '  APP_VERSION: "v56",',
+    '  APP_VERSION: "v57",',
     '  API_BASE_URL: "https://ttareungi-radar.pages.dev",',
     "};",
     "",
