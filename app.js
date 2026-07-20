@@ -536,42 +536,50 @@ function getAreaAlert(areaName, center, now = new Date()) {
       title: `${areaName} 확인 중`,
       detailHTML: "대여소 정보를 불러오는 중입니다.",
       label: "대기",
-      score: "--",
+      bikes: "--",
       className: "waiting",
+      level: "waiting",
     };
   }
 
+  // The count is what the card leads with, so the sentence underneath only has
+  // to name the station and the next-best option — repeating the number there
+  // made the whole card read like prose.
+  const stationLine = escapeHTML(primary.name);
+
   if (primary.risk.level === "critical") {
-    const mainLine = `${escapeHTML(primary.name)} ${formatBikeAvailability(primary.bikes)}.`;
     const alternativeLine = alternative
-      ? `대체대여소는 <button class="inline-link" data-focus-station="${escapeHTML(alternative.id)}">${escapeHTML(alternative.name)}</button>입니다.<br />거리 ${alternative.distance}, ${formatBikeAvailability(alternative.bikes)}.`
-      : "주변 대체대여소도 부족합니다.<br />조금 일찍 움직이는 것을 추천합니다.";
+      ? `대체 <button class="inline-link" data-focus-station="${escapeHTML(alternative.id)}">${escapeHTML(alternative.name)}</button> · ${alternative.distance} · ${alternative.bikes}대`
+      : "주변 대체 대여소도 부족합니다.";
 
     return {
       title: areaName,
-      detailHTML: `${mainLine}<br />${alternativeLine}`,
+      detailHTML: `${stationLine}<br />${alternativeLine}`,
       label: "마감임박",
-      score: primary.risk.score,
+      bikes: primary.bikes,
       className: "danger",
+      level: "critical",
     };
   }
 
   if (primary.risk.level === "low") {
     return {
       title: areaName,
-      detailHTML: `${escapeHTML(primary.name)} ${formatBikeAvailability(primary.bikes)}.<br />아직 가능성은 있지만 출발 전 한 번 더 확인하세요.`,
+      detailHTML: `${stationLine}<br />출발 전 한 번 더 확인하세요.`,
       label: "재고소진중",
-      score: primary.risk.score,
+      bikes: primary.bikes,
       className: "warning",
+      level: "low",
     };
   }
 
   return {
     title: areaName,
-    detailHTML: `${escapeHTML(primary.name)} ${formatBikeAvailability(primary.bikes)}.<br />주변 대여소 수급이 안정적입니다.`,
+    detailHTML: `${stationLine}<br />수급이 안정적입니다.`,
     label: "여유",
-    score: primary.risk.score,
+    bikes: primary.bikes,
     className: "safe",
+    level: "enough",
   };
 }
 
@@ -583,9 +591,12 @@ function setWatchCard(card, alert) {
   card.querySelector("[data-watch-title]").textContent = alert.title;
   card.querySelector("[data-watch-detail]").innerHTML = alert.detailHTML;
   card.querySelector("[data-watch-label]").textContent = alert.label;
-  card.querySelector("[data-watch-value]").textContent = alert.score;
+  card.querySelector("[data-watch-value]").textContent = alert.bikes;
   card.querySelector("[data-watch-score]").className = `score-badge ${alert.className}`;
   card.classList.toggle("is-waiting", alert.className === "waiting");
+  // Drives the card's own weight so an urgent place stands out from a calm one
+  // instead of all three carrying the same visual emphasis.
+  card.dataset.level = alert.level || "waiting";
 }
 
 function getWatchedPlaces() {
