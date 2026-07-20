@@ -883,7 +883,7 @@ function getPlaceStatCard(place, index) {
           <dd>${stats.totalBikes}대</dd>
         </div>
         <div>
-          <dt>0대</dt>
+          <dt>빈 대여소</dt>
           <dd>${stats.emptyStations}곳</dd>
         </div>
         <div>
@@ -948,7 +948,7 @@ function renderPersonalStats() {
     placeStatsGrid.innerHTML = `
       <article class="place-stat-card is-empty">
         <strong>저장장소를 등록하면 표시됩니다</strong>
-        <p>자주 쓰는 장소 기준으로 주변 재고, 0대 대여소, 대체 후보를 계산합니다.</p>
+        <p>자주 쓰는 장소 기준으로 주변 재고, 빈 대여소, 대체 후보를 계산합니다.</p>
       </article>
     `;
     renderAlternativeRanking([]);
