@@ -334,11 +334,16 @@ async function fetchSeoulBikeStations() {
       renderKakaoOverlays(stations);
     }
 
-    locationStatus.textContent = currentPosition
+    // Surface the fetch time so people know how fresh the counts are — Seoul's
+    // feed refreshes about once a minute, and a stale-looking number is only
+    // trustworthy if you can see when it was pulled.
+    const asOf = formatClock(new Date());
+    const loadedMessage = currentPosition
       ? `현재 위치 기준으로 실시간 대여소 ${allStations.length.toLocaleString("ko-KR")}곳을 불러왔습니다.`
       : locationFailed
         ? getPlainLocationFallbackMessage()
         : "현재 위치 권한을 허용하면 위치 기준으로 다시 계산합니다.";
+    locationStatus.textContent = `${loadedMessage} (${asOf} 기준)`;
   } catch (error) {
     console.error(error);
     allStations = [];
@@ -460,6 +465,13 @@ function formatNow(now) {
     month: "long",
     day: "numeric",
     weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(now);
+}
+
+function formatClock(now) {
+  return new Intl.DateTimeFormat("ko-KR", {
     hour: "2-digit",
     minute: "2-digit",
   }).format(now);
