@@ -94,6 +94,7 @@ let currentPosition = null;
 let locationFailed = false;
 let allStations = [];
 let stations = [];
+let lastFetchedAt = null;
 let highlightedStationId = "";
 let kakaoMap = null;
 let kakaoOverlays = [];
@@ -334,16 +335,17 @@ async function fetchSeoulBikeStations() {
       renderKakaoOverlays(stations);
     }
 
-    // Surface the fetch time so people know how fresh the counts are — Seoul's
-    // feed refreshes about once a minute, and a stale-looking number is only
-    // trustworthy if you can see when it was pulled.
-    const asOf = formatClock(new Date());
-    const loadedMessage = currentPosition
+    // Remember when the feed was pulled so the stats summary can show its age.
+    // Seoul refreshes about once a minute, and a count is only trustworthy if
+    // you can see how fresh it is. locationStatus itself is a volatile line the
+    // geolocation handlers overwrite, so the timestamp lives on the stats row.
+    lastFetchedAt = new Date();
+
+    locationStatus.textContent = currentPosition
       ? `현재 위치 기준으로 실시간 대여소 ${allStations.length.toLocaleString("ko-KR")}곳을 불러왔습니다.`
       : locationFailed
         ? getPlainLocationFallbackMessage()
         : "현재 위치 권한을 허용하면 위치 기준으로 다시 계산합니다.";
-    locationStatus.textContent = `${loadedMessage} (${asOf} 기준)`;
   } catch (error) {
     console.error(error);
     allStations = [];
@@ -786,7 +788,8 @@ function renderLiveStats(list = stations) {
   if (bestStation) {
     statBestStation.textContent = bestStation.name;
     statBestStationDetail.textContent = `${bestStation.distance || "거리 계산 중"} · ${formatBikeAvailability(bestStation.bikes)}`;
-    liveStatsSummary.textContent = `현재 지도 기준 주변 ${totalStations}개 대여소를 계산했습니다.`;
+    const freshness = lastFetchedAt ? ` (${formatClock(lastFetchedAt)} 기준)` : "";
+    liveStatsSummary.textContent = `현재 지도 기준 주변 ${totalStations}개 대여소를 계산했습니다.${freshness}`;
   } else {
     statBestStation.textContent = "--";
     statBestStationDetail.textContent = "주변 대여소 계산 중";
