@@ -327,6 +327,12 @@ async function fetchSeoulBikeStations() {
       throw new Error("대여소 데이터가 비어 있습니다.");
     }
 
+    // Record the feed time before rendering so the stats summary can show its
+    // age. Seoul refreshes about once a minute, and a count is only trustworthy
+    // if you can see how fresh it is. locationStatus itself is a volatile line
+    // the geolocation handlers overwrite, so the timestamp lives on the stats row.
+    lastFetchedAt = new Date();
+
     if (currentPosition) {
       updateNearbyStations(currentPosition);
     } else {
@@ -334,12 +340,6 @@ async function fetchSeoulBikeStations() {
       renderDashboard();
       renderKakaoOverlays(stations);
     }
-
-    // Remember when the feed was pulled so the stats summary can show its age.
-    // Seoul refreshes about once a minute, and a count is only trustworthy if
-    // you can see how fresh it is. locationStatus itself is a volatile line the
-    // geolocation handlers overwrite, so the timestamp lives on the stats row.
-    lastFetchedAt = new Date();
 
     locationStatus.textContent = currentPosition
       ? `현재 위치 기준으로 실시간 대여소 ${allStations.length.toLocaleString("ko-KR")}곳을 불러왔습니다.`
